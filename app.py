@@ -26,7 +26,7 @@ os.environ["LANGCHAIN_PROJECT"]=os.getenv("LANGCHAIN_PROJECT")
 os.environ["LANGCHAIN_TRACING_V2"]="true"
 
 ## Loading the Model
-llm = ChatGroq(model_name="llama-3.1-8b-instant")
+llm = ChatGroq(model_name="llama-3.1-70b-versatile")
 
 ## Getting the embeddings
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
