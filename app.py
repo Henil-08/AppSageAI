@@ -18,7 +18,7 @@ load_dotenv()
 
 ## load the GROQ and HF API Key
 os.environ['HF_TOKEN']=os.getenv("HF_TOKEN")
-os.environ['GROQ_API_KEY']=os.getenv("GROQ_API_KEY")
+os.environ['GROQ_API_KEY']=st.secrets["GROQ_API_KEY"]
 
 ## Langsmith Tracking
 os.environ["LANGCHAIN_API_KEY"]=os.getenv("LANGCHAIN_API_KEY")
