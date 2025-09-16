@@ -1,0 +1,25 @@
+[theme]
+primaryColor = "#FF6B6B"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#262730"
+textColor = "#FAFAFA"
+font = "sans serif"
+
+[server]
+maxUploadSize = 10
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+serverPort = 8501
+
+[runner]
+magicEnabled = true
+installTracer = false
+fixMatplotlib = true
+
+[client]
+showErrorDetails = false
+toolbarMode = "minimal"

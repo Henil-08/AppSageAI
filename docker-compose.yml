@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - backend
+
+  # Local Firestore emulator for development
+  firestore-emulator:
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
+    command: gcloud emulators firestore start --host-port=0.0.0.0:8080
+    ports:
+      - "8080:8080"

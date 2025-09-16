@@ -1,0 +1,51 @@
+# Application Configuration
+app:
+  name: "AppSageAI"
+  version: "2.0.0"
+  description: "Your Intelligent Companion for Tracking and Enhancing Application Performance"
+  icon: "🧑‍💻"
+
+# Model Configuration
+model:
+  provider: "groq"
+  name: "llama-3.3-70b-versatile"
+  temperature: 0.7
+  max_tokens: 4000
+
+# Embedding Configuration
+embeddings:
+  model: "all-MiniLM-L6-v2"
+  provider: "huggingface"
+
+# Vector Store Configuration
+vectorstore:
+  type: "faiss"
+  chunk_size: 1000
+  chunk_overlap: 200
+
+# Database Configuration
+database:
+  type: "sqlite"
+  name: "appsageai.db"
+  encryption_enabled: true
+
+# Langfuse Configuration
+langfuse:
+  enabled: true
+  project_name: "appsageai-v2"
+  trace_pii: false  # Don't trace PII data
+  trace_tokens: true
+  trace_response_time: true
+
+# Privacy Settings
+privacy:
+  encrypt_resumes: true
+  delete_temp_files: true
+  anonymize_logs: true
+  retention_days: 30
+
+# Session Configuration
+session:
+  timeout_minutes: 60
+  max_file_size_mb: 10
+  allowed_file_types: ["pdf"]
