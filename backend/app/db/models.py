@@ -2,7 +2,7 @@
 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 
 
@@ -31,7 +31,7 @@ class ResumeAnalysisRequest(BaseModel):
     custom_query: Optional[str] = Field(None, max_length=1000)
     encrypted_resume: str = Field(..., description="Client-encrypted resume content")
     
-    @validator('custom_query')
+    @field_validator('custom_query')
     def validate_custom_query(cls, v, values):
         if values.get('analysis_type') == AnalysisType.CUSTOM_QUERY and not v:
             raise ValueError("Custom query is required for custom analysis type")
