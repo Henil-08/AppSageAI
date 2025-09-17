@@ -27,6 +27,9 @@
     "react-dropzone": "^14.3.8",
     "react-firebase-hooks": "^5.1.1",
     "react-hot-toast": "^2.4.1",
+    "react-markdown": "^10.1.0",
+    "react-mentions": "^4.4.10",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7"
   },

@@ -4,12 +4,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import hashlib
+from pydantic import BaseModel
 
 from app.auth.firebase import get_current_user_uid, get_firestore_client
 from app.services.encryption import encryption_service
 from app.db.models import ChatMessage, ChatSession, FirestoreChat
 from app.config.settings import settings
 from app.logger import logger
+
+class UpdateChatRequest(BaseModel):
+    job_title: str
+    company: str
+    job_description: str
 
 router = APIRouter()
 
@@ -253,6 +259,57 @@ async def add_message(
             detail="Failed to add message"
         )
 
+@router.patch("/{session_id}/update")
+async def update_chat_details(
+    session_id: str,
+    request: UpdateChatRequest,
+    user_uid: str = Depends(get_current_user_uid)
+) -> Dict[str, Any]:
+    """
+    Update chat session details (title, company, job description).
+    """
+    try:
+        db = get_firestore_client()
+        
+        # Get chat reference
+        chat_ref = db.collection("users").document(user_uid)\
+            .collection("chats").document(session_id)
+        
+        # Check if chat exists
+        chat_doc = chat_ref.get()
+        if not chat_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat session not found"
+            )
+        
+        # Update the chat document
+        update_data = {
+            "job_title": request.job_title,
+            "company": request.company,
+            "job_description": request.job_description,
+            "updated_at": datetime.utcnow()
+        }
+        
+        chat_ref.update(update_data)
+        
+        logger.info(f"Chat {session_id[:8]}... updated - Title: {request.job_title}")
+        
+        return {
+            "message": "Chat details updated successfully",
+            "session_id": session_id,
+            "job_title": request.job_title,
+            "company": request.company
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating chat details: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update chat details"
+        )
 
 @router.delete("/{session_id}")
 async def delete_chat_session(

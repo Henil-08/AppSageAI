@@ -129,14 +129,14 @@ export default function DashboardLayout({
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-claude-background flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-claude-background flex overflow-hidden">
+      {/* Sidebar - Fixed height with internal scroll */}
       <aside className={`${
         sidebarOpen ? 'w-64' : 'w-16'
-      } bg-white border-r border-claude-border transition-all duration-300 flex flex-col`}>
+      } bg-white border-r border-claude-border transition-all duration-300 flex flex-col h-screen overflow-hidden`}>
         
-        {/* Logo Section */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-claude-border">
+        {/* Logo Section - Fixed */}
+        <div className="h-[65px] flex items-center justify-between px-4 border-b border-claude-border flex-shrink-0">
           {sidebarOpen && (
             <div className="flex items-center space-x-2">
               <Sparkles className="w-6 h-6 text-claude-accent-orange" />
@@ -155,7 +155,7 @@ export default function DashboardLayout({
           </button>
         </div>
 
-        {/* Navigation */}
+        {/* Navigation - Scrollable */}
         <nav className="flex-1 p-4 overflow-y-auto">
           {/* New Chat Button */}
           <a
@@ -183,7 +183,7 @@ export default function DashboardLayout({
               </button>
               
               {chatsExpanded && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-2 space-y-1 max-h-64 overflow-y-auto">
                   {loadingChats ? (
                     <div className="px-3 py-2 text-xs text-claude-text-muted">
                       Loading...
@@ -290,8 +290,8 @@ export default function DashboardLayout({
           </ul>
         </nav>
 
-        {/* User Section */}
-        <div className="p-4 border-t border-claude-border">
+        {/* User Section - Fixed at bottom */}
+        <div className="p-4 border-t border-claude-border flex-shrink-0">
           <div className={`flex items-center ${sidebarOpen ? 'space-x-3' : 'justify-center'}`}>
             <div className="relative">
               {user.photoURL ? (
@@ -332,8 +332,8 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      {/* Main Content - Full height with internal scroll */}
+      <main className="flex-1 overflow-hidden">
         {children}
       </main>
     </div>

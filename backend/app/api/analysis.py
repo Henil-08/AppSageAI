@@ -44,6 +44,10 @@ async def analyze_chat(
     try:
         db = get_firestore_client()
         
+        # Get user document FIRST - FIX THE ERROR
+        user_ref = db.collection("users").document(user_uid)
+        user_doc = user_ref.get()
+        
         # Get chat session
         chat_ref = db.collection("users").document(user_uid)\
             .collection("chats").document(session_id)
@@ -60,7 +64,6 @@ async def analyze_chat(
         # Get active resume or specified resume
         resume_id = request.resume_id
         if not resume_id:
-            user_doc = db.collection("users").document(user_uid).get()
             if user_doc.exists:
                 resume_id = user_doc.to_dict().get("active_resume_id")
         
