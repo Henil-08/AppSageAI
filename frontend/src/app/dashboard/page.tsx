@@ -11,7 +11,10 @@ import {
   Eye,
   Download,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Edit2,
+  Save,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -22,6 +25,7 @@ interface Resume {
   uploaded_at: string;
   analysis_count: number;
   is_active: boolean;
+  target_role?: string;
 }
 
 export default function DashboardPage() {
@@ -30,6 +34,11 @@ export default function DashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dragActive, setDragActive] = useState(false);
+  const [showTargetRoleModal, setShowTargetRoleModal] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [targetRole, setTargetRole] = useState('');
+  const [editingResumeId, setEditingResumeId] = useState<string | null>(null);
+  const [editingTargetRole, setEditingTargetRole] = useState('');
 
   // Fetch existing resumes
   const fetchResumes = async () => {
@@ -57,6 +66,48 @@ export default function DashboardPage() {
     fetchResumes();
   }, []);
 
+  // Update target role for existing resume
+  const updateTargetRole = async (resumeId: string) => {
+    try {
+        const token = await getToken();
+        const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/resume/${resumeId}/target-role`,
+        {
+            method: 'PATCH',
+            headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ target_role: editingTargetRole }),
+        }
+        );
+
+        if (response.ok) {
+        toast.success('Target role updated');
+        
+        // Update local state immediately
+        setResumes(prevResumes => 
+            prevResumes.map(resume => 
+            resume.resume_id === resumeId 
+                ? { ...resume, target_role: editingTargetRole }
+                : resume
+            )
+        );
+        
+        setEditingResumeId(null);
+        setEditingTargetRole('');
+        
+        // Then fetch to ensure consistency
+        fetchResumes();
+        } else {
+        toast.error('Failed to update target role');
+        }
+    } catch (error) {
+        console.error('Error updating target role:', error);
+        toast.error('Failed to update target role');
+    }
+  };
+
   // Handle file upload
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -72,9 +123,22 @@ export default function DashboardPage() {
       return;
     }
 
+    setPendingFile(file);
+    setShowTargetRoleModal(true);
+  }, []);
+
+  // Upload with target role
+  const uploadWithTargetRole = async () => {
+    if (!pendingFile) return;
+
     setUploading(true);
+    setShowTargetRoleModal(false);
+    
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', pendingFile);
+    if (targetRole) {
+      formData.append('target_role', targetRole);
+    }
 
     try {
       const token = await getToken();
@@ -90,7 +154,7 @@ export default function DashboardPage() {
 
       if (response.ok) {
         toast.success(data.message);
-        fetchResumes(); // Refresh the list
+        fetchResumes();
       } else {
         toast.error(data.detail || 'Upload failed');
       }
@@ -100,8 +164,10 @@ export default function DashboardPage() {
     } finally {
       setUploading(false);
       setDragActive(false);
+      setPendingFile(null);
+      setTargetRole('');
     }
-  }, [getToken]);
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -109,7 +175,7 @@ export default function DashboardPage() {
       'application/pdf': ['.pdf'],
     },
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 10 * 1024 * 1024,
   });
 
   // Set active resume
@@ -285,6 +351,53 @@ export default function DashboardPage() {
                           </span>
                         )}
                       </div>
+                      
+                      {/* Target Role Display/Edit */}
+                      <div className="mt-1">
+                        {editingResumeId === resume.resume_id ? (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={editingTargetRole}
+                              onChange={(e) => setEditingTargetRole(e.target.value)}
+                              placeholder="Enter target role"
+                              className="px-2 py-1 text-sm border border-claude-border rounded focus:outline-none focus:ring-1 focus:ring-claude-accent-orange"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => updateTargetRole(resume.resume_id)}
+                              className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            >
+                              <Save className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingResumeId(null);
+                                setEditingTargetRole('');
+                              }}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-claude-text-secondary">
+                              Target: {resume.target_role || 'Not specified'}
+                            </span>
+                            <button
+                              onClick={() => {
+                                setEditingResumeId(resume.resume_id);
+                                setEditingTargetRole(resume.target_role || '');
+                              }}
+                              className="p-1 text-claude-text-muted hover:text-claude-accent-orange"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      
                       <div className="flex items-center space-x-4 mt-1 text-sm text-claude-text-secondary">
                         <span className="flex items-center">
                           <Clock className="w-3 h-3 mr-1" />
@@ -351,6 +464,54 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Target Role Modal */}
+      {showTargetRoleModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full">
+            <div className="p-6 border-b border-claude-border">
+              <h2 className="text-xl font-semibold text-claude-text-primary">
+                Add Target Role
+              </h2>
+              <p className="text-sm text-claude-text-secondary mt-1">
+                What type of role are you targeting with this resume?
+              </p>
+            </div>
+            
+            <div className="p-6">
+              <input
+                type="text"
+                placeholder="e.g., Senior Software Engineer, Product Manager"
+                value={targetRole}
+                onChange={(e) => setTargetRole(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange"
+                autoFocus
+              />
+              <p className="text-xs text-claude-text-muted mt-2">
+                This helps us provide better job matching and recommendations
+              </p>
+            </div>
+            
+            <div className="p-6 border-t border-claude-border flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowTargetRoleModal(false);
+                  uploadWithTargetRole();
+                }}
+                className="px-4 py-2 bg-white border border-claude-border rounded-lg hover:bg-claude-background transition-colors"
+              >
+                Skip
+              </button>
+              <button
+                onClick={uploadWithTargetRole}
+                className="px-4 py-2 bg-claude-accent-orange text-white font-medium rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
+              >
+                Upload Resume
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

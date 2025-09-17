@@ -26,7 +26,7 @@ class FeedbackType(str, Enum):
 # Request Models
 class ResumeAnalysisRequest(BaseModel):
     """Request model for resume analysis."""
-    job_description: str = Field(..., min_length=50, max_length=10000)
+    job_description: str = Field(..., min_length=1, max_length=10000)
     analysis_type: AnalysisType
     custom_query: Optional[str] = Field(None, max_length=1000)
     encrypted_resume: str = Field(..., description="Client-encrypted resume content")
@@ -128,6 +128,7 @@ class FirestoreResume(BaseModel):
     uploaded_at: datetime
     analysis_count: int = 0
     last_analyzed: Optional[datetime] = None
+    target_role: Optional[str] = None  # ADD THIS LINE
     
     class Config:
         json_encoders = {

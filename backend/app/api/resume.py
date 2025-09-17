@@ -1,9 +1,10 @@
 """Resume upload and management API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from typing import Dict, Any, List
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Body
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 import hashlib
+from pydantic import BaseModel
 
 from app.auth.firebase import get_current_user_uid, get_firestore_client
 from app.services.encryption import encryption_service
@@ -17,6 +18,7 @@ router = APIRouter()
 @router.post("/upload")
 async def upload_resume(
     file: UploadFile = File(...),
+    target_role: Optional[str] = Form(None),
     user_uid: str = Depends(get_current_user_uid)
 ) -> Dict[str, Any]:
     """
@@ -89,7 +91,8 @@ async def upload_resume(
             filename=file.filename,
             encrypted_content=contents.hex(),  # Store as hex string
             file_hash=file_hash,
-            uploaded_at=datetime.utcnow()
+            uploaded_at=datetime.utcnow(),
+            target_role=target_role
         )
         
         # Store in Firestore
@@ -148,6 +151,7 @@ async def list_resumes(
                 "filename": resume_data.get("filename"),
                 "uploaded_at": resume_data.get("uploaded_at"),
                 "analysis_count": resume_data.get("analysis_count", 0),
+                "target_role": resume_data.get("target_role", ""),  # Add this line
                 "is_active": doc.id == active_resume_id
             })
         
@@ -251,4 +255,46 @@ async def delete_resume(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete resume"
+        )
+
+class UpdateTargetRoleRequest(BaseModel):
+    target_role: str
+
+@router.patch("/{resume_id}/target-role")
+async def update_target_role(
+    resume_id: str,
+    request: UpdateTargetRoleRequest,  # Changed from target_role: str
+    user_uid: str = Depends(get_current_user_uid)
+) -> Dict[str, str]:
+    """Update the target role for a resume."""
+    try:
+        db = get_firestore_client()
+        
+        # Verify resume exists
+        resume_ref = db.collection("users").document(user_uid)\
+            .collection("resumes").document(resume_id)
+        
+        if not resume_ref.get().exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resume not found"
+            )
+        
+        # Update target role
+        resume_ref.update({
+            "target_role": request.target_role,
+            "updated_at": datetime.utcnow()
+        })
+        
+        logger.info(f"Target role updated for resume {resume_id[:8]}...")
+        
+        return {"message": "Target role updated", "target_role": request.target_role}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating target role: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update target role"
         )

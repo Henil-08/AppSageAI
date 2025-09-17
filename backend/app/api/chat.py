@@ -16,14 +16,14 @@ router = APIRouter()
 
 @router.post("/create")
 async def create_chat_session(
-    job_description: str,
+    job_description: Optional[str] = None,
     job_title: Optional[str] = None,
     company: Optional[str] = None,
+    initial_message: Optional[str] = None,
     user_uid: str = Depends(get_current_user_uid)
 ) -> Dict[str, Any]:
     """
-    Create a new chat session for a job application.
-    Each chat is tied to a specific job description.
+    Create a new chat session.
     """
     try:
         db = get_firestore_client()
@@ -42,17 +42,17 @@ async def create_chat_session(
         session_id = encryption_service.generate_id()
         
         # Create hash of job description for grouping similar jobs
-        jd_hash = hashlib.sha256(job_description.encode()).hexdigest()[:16]
+        jd_hash = hashlib.sha256((job_description or "general").encode()).hexdigest()[:16]
         
         # Create chat session
         chat_data = {
             "session_id": session_id,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
-            "job_description": job_description[:500],  # Store first 500 chars for preview
+            "job_description": job_description or "General consultation",
             "job_description_hash": jd_hash,
-            "job_title": job_title,
-            "company": company,
+            "job_title": job_title or "General Consultation",
+            "company": company or "Career Development",
             "resume_id": active_resume_id,
             "message_count": 0,
             "metadata": {
@@ -70,8 +70,8 @@ async def create_chat_session(
         return {
             "session_id": session_id,
             "message": "Chat session created",
-            "job_title": job_title,
-            "company": company,
+            "job_title": job_title or "General Consultation",
+            "company": company or "Career Development",
             "resume_id": active_resume_id
         }
         

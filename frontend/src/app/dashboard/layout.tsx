@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Sparkles, 
@@ -11,25 +11,109 @@ import {
   MessageSquare,
   Settings,
   ChevronLeft,
+  ChevronDown,
   Menu,
-  Briefcase
+  Briefcase,
+  Plus,
+  Trash2
 } from 'lucide-react';
-import Image from 'next/image';
+import toast from 'react-hot-toast';
+
+interface ChatSession {
+  session_id: string;
+  job_title: string;
+  company: string;
+  updated_at: string;
+}
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, getToken } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [chatsExpanded, setChatsExpanded] = useState(true);
+  const [recentChats, setRecentChats] = useState<ChatSession[]>([]);
+  const [loadingChats, setLoadingChats] = useState(false);
+
+  // Fetch recent chats
+  const fetchRecentChats = async () => {
+    if (!user) return;
+    
+    setLoadingChats(true);
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/list?limit=10&offset=0`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setRecentChats(data.chats);
+      }
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
+  // Delete chat
+  const deleteChat = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const confirmed = window.confirm('Are you sure you want to delete this chat?');
+    if (!confirmed) return;
+
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/${sessionId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast.success('Chat deleted');
+        fetchRecentChats(); // Refresh the list
+        
+        // If we're on the deleted chat page, redirect
+        if (pathname === `/dashboard/${sessionId}`) {
+          router.push('/dashboard/new');
+        }
+      } else {
+        toast.error('Failed to delete chat');
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      toast.error('Failed to delete chat');
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (user) {
+      fetchRecentChats();
+    }
+  }, [user]);
 
   if (loading) {
     return (
@@ -72,21 +156,106 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
           {/* New Chat Button */}
           <a
-            href="/dashboard/new-chat"
+            href="/dashboard/chat/new"
             className="w-full flex items-center justify-center space-x-2 mb-4 px-3 py-2 bg-claude-accent-orange text-white font-medium rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
           >
-            <Sparkles className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             {sidebarOpen && <span>New Chat</span>}
           </a>
+          
+          {/* Collapsible Chats Section */}
+          {sidebarOpen && (
+            <div className="mb-4">
+              <button
+                onClick={() => setChatsExpanded(!chatsExpanded)}
+                className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-claude-text-secondary hover:bg-claude-background rounded-lg transition-colors"
+              >
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Recent Chats</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 transition-transform ${
+                  chatsExpanded ? 'rotate-0' : '-rotate-90'
+                }`} />
+              </button>
+              
+              {chatsExpanded && (
+                <div className="mt-2 space-y-1">
+                  {loadingChats ? (
+                    <div className="px-3 py-2 text-xs text-claude-text-muted">
+                      Loading...
+                    </div>
+                  ) : recentChats.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-claude-text-muted">
+                      No chats yet
+                    </div>
+                  ) : (
+                    recentChats.map((chat) => (
+                      <div
+                        key={chat.session_id}
+                        className={`group flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-claude-background transition-colors cursor-pointer ${
+                          pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''
+                        }`}
+                      >
+                        <a
+                          href={`/dashboard/chat/${chat.session_id}`}
+                          className="flex-1 min-w-0"
+                        >
+                          <div className="text-sm text-claude-text-primary truncate">
+                            {chat.job_title || 'Untitled'}
+                          </div>
+                          <div className="text-xs text-claude-text-muted truncate">
+                            {chat.company || 'No company'}
+                          </div>
+                        </a>
+                        <button
+                          onClick={(e) => deleteChat(chat.session_id, e)}
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                  
+                  {recentChats.length > 0 && (
+                    <a
+                      href="/dashboard/chat"
+                      className="block px-3 py-2 text-xs text-claude-accent-orange hover:underline"
+                    >
+                      View all chats →
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           
           <ul className="space-y-2">
             <li>
               <a
+                href="/dashboard/chat"
+                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  pathname === '/dashboard/chat'
+                    ? 'bg-claude-accent-orange-light text-claude-accent-orange'
+                    : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
+                }`}
+              >
+                <MessageSquare className="w-5 h-5 flex-shrink-0" />
+                {sidebarOpen && <span>All Chats</span>}
+              </a>
+            </li>
+            <li>
+              <a
                 href="/dashboard/jobs"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange transition-colors"
+                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  pathname === '/dashboard/jobs'
+                    ? 'bg-claude-accent-orange-light text-claude-accent-orange'
+                    : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
+                }`}
               >
                 <Briefcase className="w-5 h-5 flex-shrink-0" />
                 {sidebarOpen && <span>Job Tracker</span>}
@@ -95,7 +264,11 @@ export default function DashboardLayout({
             <li>
               <a
                 href="/dashboard"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange transition-colors"
+                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  pathname === '/dashboard'
+                    ? 'bg-claude-accent-orange-light text-claude-accent-orange'
+                    : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
+                }`}
               >
                 <FileText className="w-5 h-5 flex-shrink-0" />
                 {sidebarOpen && <span>Resume</span>}
@@ -103,17 +276,12 @@ export default function DashboardLayout({
             </li>
             <li>
               <a
-                href="/dashboard/chats"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange transition-colors"
-              >
-                <MessageSquare className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && <span>Chats</span>}
-              </a>
-            </li>
-            <li>
-              <a
                 href="/dashboard/settings"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange transition-colors"
+                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  pathname === '/dashboard/settings'
+                    ? 'bg-claude-accent-orange-light text-claude-accent-orange'
+                    : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
+                }`}
               >
                 <Settings className="w-5 h-5 flex-shrink-0" />
                 {sidebarOpen && <span>Settings</span>}
