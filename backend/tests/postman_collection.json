@@ -1,0 +1,528 @@
+
+{
+  "info": {
+    "name": "AppSageAI API",
+    "description": "Complete API collection for AppSageAI - Privacy-first resume analysis platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{firebase_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_version",
+      "value": "v1",
+      "type": "string"
+    },
+    {
+      "key": "firebase_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resume_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "analysis_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "API Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Verify Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('user_uid', response.uid);",
+                  "    pm.test('User profile returned', () => {",
+                  "        pm.expect(response).to.have.property('uid');",
+                  "        pm.expect(response).to.have.property('email');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "verify"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Auth Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/check",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "check"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resume Management",
+      "item": [
+        {
+          "name": "Upload Resume",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('resume_id', response.resume_id);",
+                  "    pm.test('Resume uploaded', () => {",
+                  "        pm.expect(response).to.have.property('resume_id');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/resume.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/resume/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "resume", "upload"]
+            }
+          }
+        },
+        {
+          "name": "List Resumes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/resume/list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "resume", "list"]
+            }
+          }
+        },
+        {
+          "name": "Set Active Resume",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/resume/{{resume_id}}/set-active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "resume", "{{resume_id}}", "set-active"]
+            }
+          }
+        },
+        {
+          "name": "Delete Resume",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/resume/{{resume_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "resume", "{{resume_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat Sessions",
+      "item": [
+        {
+          "name": "Create Chat Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('session_id', response.session_id);",
+                  "    pm.test('Session created', () => {",
+                  "        pm.expect(response).to.have.property('session_id');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"job_description\": \"We are looking for a Senior Full Stack Developer with 5+ years of experience in Python, React, and cloud technologies. The ideal candidate will have strong experience with FastAPI, PostgreSQL, and AWS/GCP.\",\n    \"job_title\": \"Senior Full Stack Developer\",\n    \"company\": \"TechCorp Inc.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/chat/create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "chat", "create"]
+            }
+          }
+        },
+        {
+          "name": "List Chat Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/chat/list?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "chat", "list"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Chat Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/chat/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "chat", "{{session_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Add Message to Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"user\",\n    \"encrypted_content\": \"V2hhdCBza2lsbHMgc2hvdWxkIEkgZm9jdXMgb24/\",\n    \"metadata\": {\n        \"client_timestamp\": \"2024-01-15T10:35:00Z\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/chat/{{session_id}}/message",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "chat", "{{session_id}}", "message"]
+            }
+          }
+        },
+        {
+          "name": "Delete Chat Session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/chat/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "chat", "{{session_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analysis",
+      "item": [
+        {
+          "name": "Resume Review Analysis",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('analysis_id', response.analysis_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"analysis_type\": \"resume_review\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/analysis/analyze/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "analysis", "analyze", "{{session_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Skill Improvement Roadmap",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"analysis_type\": \"skill_improvement\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/analysis/analyze/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "analysis", "analyze", "{{session_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Generate Cover Letter",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"analysis_type\": \"cover_letter\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/analysis/analyze/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "analysis", "analyze", "{{session_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Custom Query Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"analysis_type\": \"custom_query\",\n    \"custom_query\": \"What leadership experiences do I have that align with this role?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/analysis/analyze/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "analysis", "analyze", "{{session_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Quick Actions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/analysis/quick-actions/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "analysis", "quick-actions", "{{session_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"feedback_type\": \"thumbs_up\",\n    \"comment\": \"Very helpful analysis!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/analysis/feedback/{{analysis_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "analysis", "feedback", "{{analysis_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get User Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/user/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "user", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Usage Limits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/user/usage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "user", "usage"]
+            }
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/user/account?confirm=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "user", "account"],
+              "query": [
+                {
+                  "key": "confirm",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
