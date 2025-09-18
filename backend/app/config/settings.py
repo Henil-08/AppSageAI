@@ -4,8 +4,6 @@ from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
 from pathlib import Path
-
-
 class Settings(BaseSettings):
     """Application settings with validation."""
     
@@ -27,22 +25,27 @@ class Settings(BaseSettings):
     api_prefix: str = Field(default="/api/v1", description="API prefix")
     
     # CORS
-    cors_origins: List[str] = Field(
-        default=["http://localhost:3000"],
-        description="Allowed CORS origins"
-    )
+    cors_origin_1: str = Field(default="http://localhost:3000", description="CORS origin 1")
+    cors_origin_2: str = Field(default="", description="CORS origin 2")
+    cors_origin_3: str = Field(default="", description="CORS origin 3")
+
     
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        if isinstance(v, str):
-            # If it's a JSON string, parse it
-            if v.startswith("["):
-                import json
-                return json.loads(v)
-            # Otherwise split by comma
-            return [origin.strip() for origin in v.split(",")]
-        return v
+    @property
+    def cors_origins(self) -> List[str]:
+        """Build CORS origins list from individual env vars."""
+        origins = []
+        if self.cors_origin_1:
+            origins.append(self.cors_origin_1)
+        if self.cors_origin_2:
+            origins.append(self.cors_origin_2)
+        if self.cors_origin_3:
+            origins.append(self.cors_origin_3)
+        
+        # Default fallback for development
+        if not origins:
+            origins = ["http://localhost:3000"]
+        
+        return origins
     
     # Firebase/Google Cloud
     gcp_project_id: str = Field(default="appsageai-472321", description="GCP Project ID")
@@ -101,24 +104,15 @@ class Settings(BaseSettings):
     
     # Document Processing
     max_file_size_mb: int = Field(default=10, description="Max file size in MB")
-    allowed_file_types: List[str] = Field(
-        default=["pdf"],
-        description="Allowed file types"
-    )
+    allowed_file_type: str = Field(default="pdf", description="Allowed file type")
+    
+    @property
+    def allowed_file_types(self) -> List[str]:
+        """Return allowed file types as a list for compatibility."""
+        return [self.allowed_file_type]
+    
     chunk_size: int = Field(default=1000, description="Text chunk size")
     chunk_overlap: int = Field(default=200, description="Text chunk overlap")
-    
-    @field_validator("allowed_file_types", mode="before")
-    @classmethod
-    def parse_file_types(cls, v):
-        if isinstance(v, str):
-            # If it's a JSON string, parse it
-            if v.startswith("["):
-                import json
-                return json.loads(v)
-            # Otherwise split by comma
-            return [ft.strip() for ft in v.split(",")]
-        return v
     
     @field_validator("firebase_service_account_path", mode="before")
     @classmethod
