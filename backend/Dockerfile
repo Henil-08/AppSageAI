@@ -19,7 +19,7 @@ RUN uv pip install -e . --system
 # Expose port
 EXPOSE 8000
 
-ENV CORS_ORIGINS='["https://appsageai-frontend-3znhpshyoq-uc.a.run.app","http://localhost:3000"]'
+ENV CORS_ORIGINS='["https://appsageai-frontend-3znhpshyoq-uc.a.run.app", "https://appsageai-backend-964026407675.us-central1.run.app", "http://localhost:3000"]'
 ENV ALLOWED_FILE_TYPES='["pdf"]'
 ENV HOST 0.0.0.0
 ENV PORT 8000
