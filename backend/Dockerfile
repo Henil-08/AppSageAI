@@ -3,33 +3,29 @@ FROM python:3.12-slim as builder
 
 WORKDIR /app
 
-# Install system dependencies and curl for the installer
 RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    curl \
-    ca-certificates \
+    gcc g++ curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv using the standalone installer
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Copy project files
 COPY pyproject.toml uv.lock* ./
-
-# Install project dependencies into system site-packages
 RUN uv sync --system --no-cache-dir --frozen --no-dev
+
+COPY . .
 
 # Production stage
 FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy only source code (no .venv)
+# copy installed site-packages + bins
+COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12
+COPY --from=builder /usr/local/bin /usr/local/bin
+
 COPY . .
 
-# Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
