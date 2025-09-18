@@ -140,7 +140,6 @@ tail -f logs/running_logs.log
 - File upload: supports up to 10MB
 
 ## 🔗 Related
-
 - [Frontend README](../frontend/README.md)
 - [Main README](../README.md)
 - [Contributing](../docs/CONTRIBUTING.md)
