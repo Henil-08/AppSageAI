@@ -1,0 +1,75 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: appsageai-472321
+  SERVICE_NAME: appsageai-backend
+  REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker
+
+    - name: Build Docker image
+      run: |
+        docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+          -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest \
+          ./backend
+
+    - name: Push to Google Container Registry
+      run: |
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-env-vars="ENVIRONMENT=production" \
+          --set-env-vars="GCP_PROJECT_ID=${{ env.PROJECT_ID }}" \
+          --set-env-vars="FIRESTORE_DATABASE=appsageai" \
+          --set-env-vars="GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" \
+          --set-env-vars="ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" \
+          --set-env-vars="JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" \
+          --set-env-vars="CORS_ORIGINS=[\"https://appsageai.com\",\"https://www.appsageai.com\"]" \
+          --set-env-vars="RATE_LIMIT_ENABLED=true" \
+          --set-env-vars="DEBUG=false" \
+          --memory=1Gi \
+          --cpu=1 \
+          --timeout=300 \
+          --max-instances=10
+
+    - name: Get Service URL
+      run: |
+        SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+          --region ${{ env.REGION }} \
+          --format 'value(status.url)')
+        echo "Backend deployed to: $SERVICE_URL"
+        echo "BACKEND_URL=$SERVICE_URL" >> $GITHUB_ENV
