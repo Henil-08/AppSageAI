@@ -21,6 +21,8 @@ EXPOSE 8000
 
 ENV CORS_ORIGINS='["https://appsageai.com","https://appsageai.com"]'
 ENV ALLOWED_FILE_TYPES='["pdf"]'
+ENV HOST 0.0.0.0
+ENV PORT 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

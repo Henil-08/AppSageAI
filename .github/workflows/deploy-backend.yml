@@ -34,6 +34,10 @@ jobs:
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker "us-central1-docker.pkg.dev"
 
+    - name: Create service account file
+      run: |
+        echo '${{ secrets.GCP_SA_KEY }}' > backend/service-account.json
+
     - name: Build Docker image
       run: |
         docker build -t "us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}" \
@@ -76,6 +80,10 @@ jobs:
           --timeout=240 \
           --max-instances=10 
 
+    - name: Clean up service account file
+      if: always()
+      run: rm -f backend/service-account.json
+      
     - name: Get Service URL
       run: |
         SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
