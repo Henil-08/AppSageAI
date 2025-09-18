@@ -56,6 +56,7 @@ jobs:
           --platform managed \
           --allow-unauthenticated \
           --service-account="appsageai-backend@appsageai-472321.iam.gserviceaccount.com" \
+          --port=8000 \
           --set-env-vars="ENVIRONMENT=production" \
           --set-env-vars="GCP_PROJECT_ID=${{ env.PROJECT_ID }}" \
           --set-env-vars="FIRESTORE_DATABASE=appsageai" \
@@ -83,7 +84,7 @@ jobs:
     - name: Clean up service account file
       if: always()
       run: rm -f backend/service-account.json
-      
+
     - name: Get Service URL
       run: |
         SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
