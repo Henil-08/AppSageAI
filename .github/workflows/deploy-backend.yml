@@ -57,8 +57,20 @@ jobs:
           --set-env-vars="GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" \
           --set-env-vars="ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" \
           --set-env-vars="JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" \
-          --set-env-vars="CORS_ORIGINS=[\"https://appsageai.com\",\"https://www.appsageai.com\"]" \
+          --set-env-vars="JWT_ALGORITHM=HS256" \
+          --set-env-vars="ACCESS_TOKEN_EXPIRE_MINUTES=60" \
+          --set-env-vars="REFRESH_TOKEN_EXPIRE_DAYS=30" \
+          --set-env-vars='CORS_ORIGINS=["https://appsageai.com","https://www.appsageai.com"]' \
+          --set-env-vars='MODEL_NAME=llama-3.3-70b-versatile' \
+          --set-env-vars="EMBEDDING_MODEL=all-MiniLM-L6-v2" \
+          --set-env-vars="HF_TOKEN=${{ secrets.HF_TOKEN }}" \
           --set-env-vars="RATE_LIMIT_ENABLED=true" \
+          --set-env-vars="RATE_LIMIT_REQUESTS=100" \
+          --set-env-vars="RATE_LIMIT_PERIOD=60" \
+          --set-env-vars="MAX_FILE_SIZE_MB=10" \
+          --set-env-vars='ALLOWED_FILE_TYPES=["pdf"]' \
+          --set-env-vars="CHUNK_SIZE=1000" \
+          --set-env-vars="CHUNK_OVERLAP=200" \
           --set-env-vars="DEBUG=false" \
           --memory=1Gi \
           --cpu=1 \
