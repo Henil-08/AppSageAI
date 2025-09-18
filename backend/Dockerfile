@@ -10,10 +10,11 @@ RUN apt-get update && apt-get install -y \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-COPY pyproject.toml uv.lock* ./
-RUN uv sync --system --no-cache-dir
+COPY pyproject.toml .
+RUN uv pip install -r pyproject.toml
 
 COPY . .
+RUN uv pip install -e .
 
 # Expose port
 EXPOSE 8000
