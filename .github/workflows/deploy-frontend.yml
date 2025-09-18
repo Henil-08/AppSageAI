@@ -32,7 +32,7 @@ jobs:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
 
     - name: Configure Docker for GCR
-      run: gcloud auth configure-docker
+      run: gcloud auth configure-docker "us-central1-docker.pkg.dev"
 
     - name: Build Docker image
       run: |
@@ -57,6 +57,7 @@ jobs:
         gcloud run deploy ${{ env.SERVICE_NAME }} \
           --image us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
           --region ${{ env.REGION }} \
+          --service-account="appsageai-backend@appsageai-472321.iam.gserviceaccount.com" \
           --platform managed \
           --allow-unauthenticated \
           --memory=2Gi \
