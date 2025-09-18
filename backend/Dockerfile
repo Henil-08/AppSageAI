@@ -42,6 +42,9 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
+ENV CORS_ORIGINS=["https://appsageai.com","https://appsageai.com"]
+ENV ALLOWED_FILE_TYPES=["pdf"]
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
