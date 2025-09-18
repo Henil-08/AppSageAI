@@ -71,10 +71,10 @@ jobs:
           --set-env-vars="CHUNK_SIZE=1000" \
           --set-env-vars="CHUNK_OVERLAP=200" \
           --set-env-vars="DEBUG=false" \
-          --memory=1Gi \
-          --cpu=1 \
-          --timeout=300 \
-          --max-instances=10
+          --memory=8Gi \
+          --cpu=4 \
+          --timeout=240 \
+          --max-instances=10 
 
     - name: Get Service URL
       run: |
