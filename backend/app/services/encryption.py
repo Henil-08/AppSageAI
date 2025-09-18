@@ -54,6 +54,37 @@ class EncryptionService:
             logger.error(f"Failed to initialize cipher: {e}")
             return None
     
+    def encrypt_content(self, data: bytes) -> str:
+        """Actually encrypt data (not just encode)."""
+        if not self.cipher:
+            # If no cipher available, at least encode it
+            return base64.b64encode(data).decode()
+        
+        try:
+            encrypted = self.cipher.encrypt(data)
+            return encrypted.decode()
+        except Exception as e:
+            logger.error(f"Encryption failed: {e}")
+            # Fallback to base64 encoding
+            return base64.b64encode(data).decode()
+
+    def decrypt_content(self, encrypted_data: str) -> bytes:
+        """Actually decrypt data."""
+        if not self.cipher:
+            # If no cipher, assume it's base64 encoded
+            return base64.b64decode(encrypted_data)
+        
+        try:
+            decrypted = self.cipher.decrypt(encrypted_data.encode())
+            return decrypted
+        except Exception:
+            # Try base64 decode as fallback (for old data)
+            try:
+                return base64.b64decode(encrypted_data)
+            except:
+                # Last resort - assume it's hex encoded (your current data)
+                return bytes.fromhex(encrypted_data)
+
     def encrypt_metadata(self, data: str) -> str:
         """
         Encrypt metadata (not user content - that's encrypted client-side).

@@ -89,7 +89,7 @@ async def upload_resume(
         resume_data = FirestoreResume(
             resume_id=resume_id,
             filename=file.filename,
-            encrypted_content=contents.hex(),  # Store as hex string
+            encrypted_content=encryption_service.encrypt_content(contents),
             file_hash=file_hash,
             uploaded_at=datetime.utcnow(),
             target_role=target_role
@@ -231,7 +231,7 @@ async def download_resume(
         resume_data = resume_doc.to_dict()
         
         # Convert hex string back to bytes
-        content = bytes.fromhex(resume_data.get("encrypted_content", ""))
+        content = encryption_service.decrypt_content(resume_data.get("encrypted_content", ""))
         
         return Response(
             content=content,

@@ -114,7 +114,7 @@ async def analyze_chat(
         message_data = {
             "message_id": analysis_id,
             "role": "assistant",
-            "encrypted_content": result,  # In production, encrypt this
+            "encrypted_content": encryption_service.encrypt_content(result.encode()),
             "timestamp": datetime.utcnow(),
             "metadata": {
                 "analysis_type": request.analysis_type,

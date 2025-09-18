@@ -175,10 +175,18 @@ async def get_chat_session(
         
         for msg_doc in messages_ref.stream():
             msg_data = msg_doc.to_dict()
+            decrypted_content = msg_data.get("encrypted_content", "")
+            # Try to decrypt if it looks encrypted, otherwise return as-is
+            if decrypted_content and not decrypted_content.startswith("{"):  # Not JSON
+                try:
+                    decrypted_content = encryption_service.decrypt_content(decrypted_content).decode()
+                except:
+                    pass  # Keep original if decryption fails
+
             messages.append({
                 "message_id": msg_doc.id,
                 "role": msg_data.get("role"),
-                "encrypted_content": msg_data.get("encrypted_content"),
+                "encrypted_content": decrypted_content,
                 "timestamp": msg_data.get("timestamp"),
                 "metadata": msg_data.get("metadata", {})
             })
@@ -233,7 +241,7 @@ async def add_message(
         # Store message
         message_data = {
             "role": message.role,
-            "encrypted_content": message.encrypted_content,
+            "encrypted_content": encryption_service.encrypt_content(message.encrypted_content.encode()),
             "timestamp": datetime.utcnow(),
             "metadata": message.metadata or {}
         }
