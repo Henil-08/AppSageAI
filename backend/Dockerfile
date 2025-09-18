@@ -19,7 +19,7 @@ ENV PATH="/root/.local/bin:$PATH"
 COPY pyproject.toml uv.lock* ./
 
 # Install dependencies directly into system Python (no venv)
-RUN uv pip install --system --no-cache-dir -r <(uv pip compile --extra prod pyproject.toml)
+RUN uv pip install --system --no-cache-dir
 
 # Copy app code
 COPY . .
