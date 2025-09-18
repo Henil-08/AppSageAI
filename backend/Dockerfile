@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.12-slim as builder
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -11,23 +11,9 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 COPY pyproject.toml uv.lock* ./
-RUN uv sync --system --no-cache-dir --frozen --no-dev
+RUN uv sync --system --no-cache-dir
 
 COPY . .
-
-# Production stage
-FROM python:3.12-slim
-
-WORKDIR /app
-
-# copy installed site-packages + bins
-COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-COPY . .
-
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
 
 # Expose port
 EXPOSE 8000
