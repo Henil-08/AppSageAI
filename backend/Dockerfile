@@ -11,10 +11,10 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 COPY pyproject.toml .
-RUN uv pip install -r pyproject.toml
+RUN uv pip install -r pyproject.toml --system
 
 COPY . .
-RUN uv pip install -e .
+RUN uv pip install -e . --system
 
 # Expose port
 EXPOSE 8000
