@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface Resume {
   resume_id: string;
@@ -39,6 +40,12 @@ export default function DashboardPage() {
   const [targetRole, setTargetRole] = useState('');
   const [editingResumeId, setEditingResumeId] = useState<string | null>(null);
   const [editingTargetRole, setEditingTargetRole] = useState('');
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    resumeId: string | null;
+    filename: string;
+  }>({ isOpen: false, resumeId: null, filename: '' });
+  const [previewingResume, setPreviewingResume] = useState<string | null>(null);
 
   // Fetch existing resumes
   const fetchResumes = async () => {
@@ -204,8 +211,6 @@ export default function DashboardPage() {
 
   // Delete resume
   const deleteResume = async (resumeId: string) => {
-    if (!confirm('Are you sure you want to delete this resume?')) return;
-
     try {
       const token = await getToken();
       const response = await fetch(
@@ -221,10 +226,79 @@ export default function DashboardPage() {
       if (response.ok) {
         toast.success('Resume deleted');
         fetchResumes();
+        setDeleteModal({ isOpen: false, resumeId: null, filename: '' });
       }
     } catch (error) {
       console.error('Error deleting resume:', error);
       toast.error('Failed to delete resume');
+    }
+  };
+
+  // Preview resume
+  const previewResume = async (resumeId: string) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/resume/${resumeId}/download`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        setPreviewingResume(url);
+        
+        // Open in new tab
+        window.open(url, '_blank');
+        
+        // Clean up
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          setPreviewingResume(null);
+        }, 1000);
+      } else {
+        toast.error('Failed to preview resume');
+      }
+    } catch (error) {
+      console.error('Error previewing resume:', error);
+      toast.error('Unable to preview resume');
+    }
+  };
+
+  // Download resume
+  const downloadResume = async (resumeId: string, filename: string) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/resume/${resumeId}/download`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Download started');
+      } else {
+        toast.error('Failed to download resume');
+      }
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      toast.error('Unable to download resume');
     }
   };
 
@@ -421,13 +495,15 @@ export default function DashboardPage() {
                     )}
                     
                     <button
+                      onClick={() => previewResume(resume.resume_id)}
                       className="p-2 hover:bg-claude-background rounded-lg transition-colors"
-                      title="View"
+                      title="Preview"
                     >
                       <Eye className="w-4 h-4 text-claude-text-secondary" />
                     </button>
                     
                     <button
+                      onClick={() => downloadResume(resume.resume_id, resume.filename)}
                       className="p-2 hover:bg-claude-background rounded-lg transition-colors"
                       title="Download"
                     >
@@ -435,7 +511,11 @@ export default function DashboardPage() {
                     </button>
                     
                     <button
-                      onClick={() => deleteResume(resume.resume_id)}
+                      onClick={() => setDeleteModal({
+                        isOpen: true,
+                        resumeId: resume.resume_id,
+                        filename: resume.filename
+                      })}
                       className="p-2 hover:bg-red-50 rounded-lg transition-colors"
                       title="Delete"
                     >
@@ -512,6 +592,22 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, resumeId: null, filename: '' })}
+        onConfirm={() => {
+          if (deleteModal.resumeId) {
+            deleteResume(deleteModal.resumeId);
+          }
+        }}
+        title="Delete Resume"
+        message={`Are you sure you want to delete "${deleteModal.filename}"? This action cannot be undone.`}
+        confirmText="Delete Resume"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 }

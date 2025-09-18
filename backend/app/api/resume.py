@@ -1,6 +1,6 @@
 """Resume upload and management API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Body
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import hashlib
@@ -209,6 +209,46 @@ async def set_active_resume(
             detail="Failed to set active resume"
         )
 
+@router.get("/{resume_id}/download")
+async def download_resume(
+    resume_id: str,
+    user_uid: str = Depends(get_current_user_uid)
+) -> Response:
+    """Download a resume file."""
+    try:
+        db = get_firestore_client()
+        
+        resume_ref = db.collection("users").document(user_uid)\
+            .collection("resumes").document(resume_id)
+        
+        resume_doc = resume_ref.get()
+        if not resume_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resume not found"
+            )
+        
+        resume_data = resume_doc.to_dict()
+        
+        # Convert hex string back to bytes
+        content = bytes.fromhex(resume_data.get("encrypted_content", ""))
+        
+        return Response(
+            content=content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={resume_data.get('filename', 'resume.pdf')}"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading resume: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to download resume"
+        )
 
 @router.delete("/{resume_id}")
 async def delete_resume(

@@ -1,120 +1,218 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../../contexts/AuthContext';
 import { 
   Briefcase,
   Calendar,
   MapPin,
-  DollarSign,
   CheckCircle,
   Clock,
   XCircle,
   MessageSquare,
-  ExternalLink,
-  Filter
+  Filter,
+  AlertCircle,
+  TrendingUp,
+  Edit2,
+  Save,
+  X
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-interface JobApplication {
-  id: string;
-  title: string;
+interface ChatWithTracker {
+  session_id: string;
+  job_title: string;
   company: string;
-  location?: string;
-  salary?: string;
-  status: 'interested' | 'applied' | 'interviewing' | 'offered' | 'rejected';
-  appliedDate?: string;
-  deadline?: string;
-  notes?: string;
-  chatSessionId?: string;
-  url?: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  tracker_status?: string;
+  applied_date?: string;
+  tracker_notes?: string;
+  has_job_description: boolean;
 }
 
-const STATUS_COLORS = {
-  interested: 'bg-gray-100 text-gray-700',
-  applied: 'bg-blue-100 text-blue-700',
-  interviewing: 'bg-yellow-100 text-yellow-700',
-  offered: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-};
+const STATUS_OPTIONS = [
+  { value: 'not_applicable', label: 'N/A', color: 'bg-gray-100 text-gray-700' },
+  { value: 'interested', label: 'Interested', color: 'bg-blue-100 text-blue-700' },
+  { value: 'applied', label: 'Applied', color: 'bg-green-100 text-green-700' },
+  { value: 'interviewing', label: 'Interviewing', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'offered', label: 'Offered', color: 'bg-purple-100 text-purple-700' },
+  { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-700' },
+];
 
 const STATUS_ICONS = {
+  not_applicable: AlertCircle,
   interested: Clock,
   applied: CheckCircle,
   interviewing: MessageSquare,
-  offered: CheckCircle,
+  offered: TrendingUp,
   rejected: XCircle,
 };
 
 export default function JobTrackerPage() {
-  const [jobs, setJobs] = useState<JobApplication[]>([]);
+  const { getToken } = useAuth();
+  const router = useRouter();
+  const [chats, setChats] = useState<ChatWithTracker[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [editingChat, setEditingChat] = useState<string | null>(null);
+  const [editData, setEditData] = useState<{
+    status: string;
+    applied_date: string;
+    notes: string;
+  }>({ status: '', applied_date: '', notes: '' });
 
   useEffect(() => {
-    // Load jobs from localStorage (in production, this would be from backend)
-    const loadJobs = () => {
-      const jobKeys = Object.keys(localStorage).filter(key => key.startsWith('job_'));
-      const loadedJobs = jobKeys.map(key => {
-        const data = JSON.parse(localStorage.getItem(key) || '{}');
-        return {
-          id: key.replace('job_', ''),
-          ...data
-        };
-      });
-      setJobs(loadedJobs);
-    };
-    
-    loadJobs();
+    fetchChatsWithTracker();
   }, []);
 
-  const updateJobStatus = (jobId: string, newStatus: JobApplication['status']) => {
-    const updatedJobs = jobs.map(job => 
-      job.id === jobId ? { ...job, status: newStatus } : job
-    );
-    setJobs(updatedJobs);
-    
-    // Update localStorage
-    const job = updatedJobs.find(j => j.id === jobId);
-    if (job) {
-      localStorage.setItem(`job_${jobId}`, JSON.stringify(job));
+  const fetchChatsWithTracker = async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/list?limit=100`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Process chats to determine if they have job descriptions
+        const processedChats = data.chats.map((chat: any) => ({
+          ...chat,
+          tracker_status: chat.tracker_status || 'not_applicable',
+          has_job_description: chat.job_title !== 'General Consultation' && 
+                               chat.company !== 'Career Development'
+        }));
+        setChats(processedChats);
+      }
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      toast.error('Failed to load job applications');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredJobs = filter === 'all' 
-    ? jobs 
-    : jobs.filter(job => job.status === filter);
+  const updateTrackerStatus = async (
+    sessionId: string, 
+    status: string,
+    appliedDate?: string,
+    notes?: string
+  ) => {
+    try {
+      const token = await getToken();
+      const params = new URLSearchParams({ tracker_status: status });
+      if (appliedDate) params.append('applied_date', appliedDate);
+      if (notes) params.append('notes', notes);
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/${sessionId}/tracker?${params}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast.success('Status updated');
+        fetchChatsWithTracker();
+        setEditingChat(null);
+      } else {
+        toast.error('Failed to update status');
+      }
+    } catch (error) {
+      console.error('Error updating tracker:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  const startEditing = (chat: ChatWithTracker) => {
+    setEditingChat(chat.session_id);
+    setEditData({
+      status: chat.tracker_status || 'not_applicable',
+      applied_date: chat.applied_date || '',
+      notes: chat.tracker_notes || ''
+    });
+  };
+
+  const saveEdit = () => {
+    if (editingChat) {
+      updateTrackerStatus(
+        editingChat,
+        editData.status,
+        editData.applied_date,
+        editData.notes
+      );
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingChat(null);
+    setEditData({ status: '', applied_date: '', notes: '' });
+  };
+
+  const filteredChats = filter === 'all' 
+    ? chats 
+    : chats.filter(chat => chat.tracker_status === filter);
 
   const stats = {
-    total: jobs.length,
-    applied: jobs.filter(j => j.status === 'applied').length,
-    interviewing: jobs.filter(j => j.status === 'interviewing').length,
-    offered: jobs.filter(j => j.status === 'offered').length,
+    total: chats.length,
+    jobs: chats.filter(c => c.has_job_description).length,
+    applied: chats.filter(c => c.tracker_status === 'applied').length,
+    interviewing: chats.filter(c => c.tracker_status === 'interviewing').length,
+    offered: chats.filter(c => c.tracker_status === 'offered').length,
   };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-3 border-claude-accent-orange border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-claude-text-primary mb-2">
-          Job Application Tracker
+          Application Tracker
         </h1>
         <p className="text-claude-text-secondary">
-          Track your job applications and their progress
+          Track the status of all your job application chats
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <div className="bg-white rounded-xl border border-claude-border p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-claude-text-secondary text-sm">Total Applications</span>
-            <Briefcase className="w-4 h-4 text-claude-text-muted" />
+            <span className="text-claude-text-secondary text-sm">Total Chats</span>
+            <MessageSquare className="w-4 h-4 text-claude-text-muted" />
           </div>
           <div className="text-2xl font-semibold text-claude-text-primary">{stats.total}</div>
         </div>
         
         <div className="bg-white rounded-xl border border-claude-border p-4">
           <div className="flex items-center justify-between mb-2">
+            <span className="text-claude-text-secondary text-sm">Job Apps</span>
+            <Briefcase className="w-4 h-4 text-claude-accent-orange" />
+          </div>
+          <div className="text-2xl font-semibold text-claude-text-primary">{stats.jobs}</div>
+        </div>
+        
+        <div className="bg-white rounded-xl border border-claude-border p-4">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-claude-text-secondary text-sm">Applied</span>
-            <CheckCircle className="w-4 h-4 text-blue-500" />
+            <CheckCircle className="w-4 h-4 text-green-500" />
           </div>
           <div className="text-2xl font-semibold text-claude-text-primary">{stats.applied}</div>
         </div>
@@ -130,142 +228,198 @@ export default function JobTrackerPage() {
         <div className="bg-white rounded-xl border border-claude-border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-claude-text-secondary text-sm">Offers</span>
-            <CheckCircle className="w-4 h-4 text-green-500" />
+            <TrendingUp className="w-4 h-4 text-purple-500" />
           </div>
           <div className="text-2xl font-semibold text-claude-text-primary">{stats.offered}</div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center space-x-2 mb-6">
+      <div className="flex items-center space-x-2 mb-6 overflow-x-auto">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
             filter === 'all' 
               ? 'bg-claude-accent-orange text-white' 
               : 'bg-white text-claude-text-secondary hover:bg-claude-background'
           }`}
         >
-          All
+          All ({chats.length})
         </button>
-        {Object.keys(STATUS_COLORS).map(status => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors capitalize ${
-              filter === status 
-                ? 'bg-claude-accent-orange text-white' 
-                : 'bg-white text-claude-text-secondary hover:bg-claude-background'
-            }`}
-          >
-            {status}
-          </button>
-        ))}
+        {STATUS_OPTIONS.map(status => {
+          const count = chats.filter(c => c.tracker_status === status.value).length;
+          return (
+            <button
+              key={status.value}
+              onClick={() => setFilter(status.value)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                filter === status.value 
+                  ? 'bg-claude-accent-orange text-white' 
+                  : 'bg-white text-claude-text-secondary hover:bg-claude-background'
+              }`}
+            >
+              {status.label} ({count})
+            </button>
+          );
+        })}
       </div>
 
-      {/* Jobs List */}
+      {/* Applications List */}
       <div className="space-y-4">
-        {filteredJobs.length === 0 ? (
+        {filteredChats.length === 0 ? (
           <div className="bg-white rounded-xl border border-claude-border p-12 text-center">
             <Briefcase className="w-12 h-12 text-claude-text-muted mx-auto mb-4" />
             <p className="text-lg font-medium text-claude-text-primary mb-2">
-              No applications tracked yet
+              {filter === 'all' ? 'No chats yet' : `No ${filter.replace('_', ' ')} applications`}
             </p>
             <p className="text-sm text-claude-text-secondary">
-              Start a chat with a job listing to track it here
+              Start a new chat to track your job applications
             </p>
           </div>
         ) : (
-          filteredJobs.map(job => {
-            const StatusIcon = STATUS_ICONS[job.status];
+          filteredChats.map(chat => {
+            const StatusIcon = STATUS_ICONS[chat.tracker_status as keyof typeof STATUS_ICONS] || AlertCircle;
+            const statusOption = STATUS_OPTIONS.find(s => s.value === chat.tracker_status);
+            const isEditing = editingChat === chat.session_id;
+            
             return (
               <div
-                key={job.id}
+                key={chat.session_id}
                 className="bg-white rounded-xl border border-claude-border p-6 hover:shadow-soft transition-all"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
+                {isEditing ? (
+                  // Edit Mode
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-claude-text-primary">
-                        {job.title}
+                        {chat.job_title}
                       </h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[job.status]}`}>
-                        {job.status}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={saveEdit}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     
-                    <div className="flex items-center space-x-4 text-sm text-claude-text-secondary mb-3">
-                      <span className="flex items-center">
-                        <Briefcase className="w-3 h-3 mr-1" />
-                        {job.company}
-                      </span>
-                      {job.location && (
-                        <span className="flex items-center">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {job.location}
-                        </span>
-                      )}
-                      {job.salary && (
-                        <span className="flex items-center">
-                          <DollarSign className="w-3 h-3 mr-1" />
-                          {job.salary}
-                        </span>
-                      )}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs text-claude-text-secondary mb-1">
+                          Status
+                        </label>
+                        <select
+                          value={editData.status}
+                          onChange={(e) => setEditData({...editData, status: e.target.value})}
+                          className="w-full px-3 py-2 bg-white border border-claude-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20"
+                        >
+                          {STATUS_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs text-claude-text-secondary mb-1">
+                          Applied Date
+                        </label>
+                        <input
+                          type="date"
+                          value={editData.applied_date}
+                          onChange={(e) => setEditData({...editData, applied_date: e.target.value})}
+                          className="w-full px-3 py-2 bg-white border border-claude-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs text-claude-text-secondary mb-1">
+                          Notes
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Add notes..."
+                          value={editData.notes}
+                          onChange={(e) => setEditData({...editData, notes: e.target.value})}
+                          className="w-full px-3 py-2 bg-white border border-claude-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20"
+                        />
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-4 text-xs text-claude-text-muted">
-                      {job.appliedDate && (
+                  </div>
+                ) : (
+                  // View Mode
+                  <div className="flex items-start justify-between">
+                    <div 
+                      className="flex-1 cursor-pointer"
+                      onClick={() => router.push(`/dashboard/chat/${chat.session_id}`)}
+                    >
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-medium text-claude-text-primary hover:text-claude-accent-orange transition-colors">
+                          {chat.job_title}
+                        </h3>
+                        {statusOption && (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusOption.color}`}>
+                            <StatusIcon className="w-3 h-3 inline mr-1" />
+                            {statusOption.label}
+                          </span>
+                        )}
+                        {!chat.has_job_description && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                            Resume Enhancement
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-sm text-claude-text-secondary mb-2">
+                        <span className="flex items-center">
+                          <Briefcase className="w-3 h-3 mr-1" />
+                          {chat.company}
+                        </span>
+                        <span className="flex items-center">
+                          <MessageSquare className="w-3 h-3 mr-1" />
+                          {chat.message_count} messages
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-xs text-claude-text-muted">
                         <span className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          Applied: {new Date(job.appliedDate).toLocaleDateString()}
+                          Created: {new Date(chat.created_at).toLocaleDateString()}
                         </span>
-                      )}
-                      {job.deadline && (
-                        <span className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Deadline: {new Date(job.deadline).toLocaleDateString()}
-                        </span>
+                        {chat.applied_date && (
+                          <span className="flex items-center">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Applied: {new Date(chat.applied_date).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {chat.tracker_notes && (
+                        <div className="mt-2 text-sm text-claude-text-secondary italic">
+                          Note: {chat.tracker_notes}
+                        </div>
                       )}
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    {/* Status Update Dropdown */}
-                    <select
-                      value={job.status}
-                      onChange={(e) => updateJobStatus(job.id, e.target.value as any)}
-                      className="px-3 py-1 bg-claude-background border border-claude-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20"
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditing(chat);
+                      }}
+                      className="p-2 hover:bg-claude-background rounded-lg transition-colors ml-4"
                     >
-                      <option value="interested">Interested</option>
-                      <option value="applied">Applied</option>
-                      <option value="interviewing">Interviewing</option>
-                      <option value="offered">Offered</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                    
-                    {job.chatSessionId && (
-                      <a
-                        href={`/dashboard/chat/${job.chatSessionId}`}
-                        className="p-2 hover:bg-claude-background rounded-lg transition-colors"
-                        title="Open Chat"
-                      >
-                        <MessageSquare className="w-4 h-4 text-claude-text-secondary" />
-                      </a>
-                    )}
-                    
-                    {job.url && (
-                      <a
-                        href={job.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 hover:bg-claude-background rounded-lg transition-colors"
-                        title="View Job Posting"
-                      >
-                        <ExternalLink className="w-4 h-4 text-claude-text-secondary" />
-                      </a>
-                    )}
+                      <Edit2 className="w-4 h-4 text-claude-text-secondary" />
+                    </button>
                   </div>
-                </div>
+                )}
               </div>
             );
           })

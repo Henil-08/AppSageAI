@@ -196,6 +196,14 @@ class ChatHistoryResponse(BaseModel):
     page_size: int
     has_next: bool
 
+class TrackerStatus(str, Enum):
+    """Job application tracking status."""
+    NOT_APPLICABLE = "not_applicable"
+    INTERESTED = "interested"
+    APPLIED = "applied"
+    INTERVIEWING = "interviewing"
+    OFFERED = "offered"
+    REJECTED = "rejected"
 
 # Limits for free tier
 class UsageLimits(BaseModel):

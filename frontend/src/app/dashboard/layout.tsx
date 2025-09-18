@@ -1,7 +1,11 @@
 'use client';
 
+import { Trash2 } from 'lucide-react';
+
 import { useEffect, useState } from 'react';
+
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Sparkles,
@@ -9,15 +13,14 @@ import {
   User,
   FileText,
   MessageSquare,
-  Settings,
   ChevronLeft,
   ChevronDown,
   Menu,
   Briefcase,
-  Plus,
-  Trash2
+  Plus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface ChatSession {
   session_id: string;
@@ -38,6 +41,11 @@ export default function DashboardLayout({
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [recentChats, setRecentChats] = useState<ChatSession[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    chatId: string | null;
+    chatTitle: string;
+  }>({ isOpen: false, chatId: null, chatTitle: '' });
 
   // Fetch recent chats
   const fetchRecentChats = async () => {
@@ -67,13 +75,7 @@ export default function DashboardLayout({
   };
 
   // Delete chat
-  const deleteChat = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    const confirmed = window.confirm('Are you sure you want to delete this chat?');
-    if (!confirmed) return;
-
+  const deleteChat = async (sessionId: string) => {
     try {
       const token = await getToken();
       const response = await fetch(
@@ -91,8 +93,8 @@ export default function DashboardLayout({
         fetchRecentChats(); // Refresh the list
 
         // If we're on the deleted chat page, redirect
-        if (pathname === `/dashboard/${sessionId}`) {
-          router.push('/dashboard/new');
+        if (pathname === `/dashboard/chat/${sessionId}`) {
+          router.push('/dashboard/chat/new');
         }
       } else {
         toast.error('Failed to delete chat');
@@ -115,6 +117,18 @@ export default function DashboardLayout({
     }
   }, [user]);
 
+  // Listen for refresh events
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchRecentChats();
+    };
+
+    window.addEventListener('refreshSidebarChats', handleRefresh);
+    return () => {
+      window.removeEventListener('refreshSidebarChats', handleRefresh);
+    };
+  }, [user]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-claude-background">
@@ -129,11 +143,11 @@ export default function DashboardLayout({
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-claude-background flex overflow-hidden">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-claude-background">
+      {/* Fixed Sidebar */}
       <aside
         className={`${sidebarOpen ? 'w-64' : 'w-20'
-          } bg-white border-r border-claude-border transition-all duration-300 flex flex-col h-screen overflow-hidden`}
+          } bg-white border-r border-claude-border transition-all duration-300 flex flex-col h-screen overflow-hidden fixed left-0 top-0 z-40`}
       >
         {/* Logo Section */}
         <div className="h-[65px] flex items-center justify-between px-4 border-b border-claude-border flex-shrink-0">
@@ -158,13 +172,13 @@ export default function DashboardLayout({
         {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
           {/* New Chat */}
-          <a
+          <Link
             href="/dashboard/chat/new"
             className="w-full flex items-center justify-center space-x-2 mb-4 px-3 py-2 bg-claude-accent-orange text-white font-medium rounded-lg hover:bg-claude-accent-orange-hover transition-all duration-300"
           >
             <Plus className="w-4 h-4" />
             {sidebarOpen && <span className="transition-opacity duration-300">New Chat</span>}
-          </a>
+          </Link>
 
           {/* Collapsible Chats */}
           {sidebarOpen && (
@@ -197,10 +211,10 @@ export default function DashboardLayout({
                     recentChats.map((chat) => (
                       <div
                         key={chat.session_id}
-                        className={`group flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-claude-background transition-colors cursor-pointer ${pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''
+                        className={`group flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-claude-background transition-colors ${pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''
                           }`}
                       >
-                        <a
+                        <Link
                           href={`/dashboard/chat/${chat.session_id}`}
                           className="flex-1 min-w-0"
                         >
@@ -210,9 +224,16 @@ export default function DashboardLayout({
                           <div className="text-xs text-claude-text-muted truncate">
                             {chat.company || 'No company'}
                           </div>
-                        </a>
+                        </Link>
                         <button
-                          onClick={(e) => deleteChat(chat.session_id, e)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteModal({
+                              isOpen: true,
+                              chatId: chat.session_id,
+                              chatTitle: chat.job_title || 'Untitled'
+                            });
+                          }}
                           className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
                         >
                           <Trash2 className="w-3 h-3 text-red-500" />
@@ -222,12 +243,12 @@ export default function DashboardLayout({
                   )}
 
                   {recentChats.length > 0 && (
-                    <a
+                    <Link
                       href="/dashboard/chat"
                       className="block px-3 py-2 text-xs text-claude-accent-orange hover:underline"
                     >
                       View all chats →
-                    </a>
+                    </Link>
                   )}
                 </div>
               )}
@@ -240,10 +261,9 @@ export default function DashboardLayout({
               { href: '/dashboard/chat', icon: MessageSquare, label: 'All Chats' },
               { href: '/dashboard/jobs', icon: Briefcase, label: 'Job Tracker' },
               { href: '/dashboard', icon: FileText, label: 'Resume' },
-              { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
             ].map((item) => (
               <li key={item.href}>
-                <a
+                <Link
                   href={item.href}
                   className={`flex items-center justify-center md:justify-start space-x-3 px-3 py-2 rounded-lg transition-all duration-300 ${pathname === item.href
                     ? 'bg-claude-accent-orange-light text-claude-accent-orange'
@@ -254,7 +274,7 @@ export default function DashboardLayout({
                   {sidebarOpen && (
                     <span className="transition-all duration-300">{item.label}</span>
                   )}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -290,7 +310,7 @@ export default function DashboardLayout({
             )}
           </div>
 
-          {/* Sign out button (both collapsed + expanded) */}
+          {/* Sign out button */}
           <button
             onClick={signOut}
             className={`mt-4 w-full flex items-center ${sidebarOpen ? 'justify-center space-x-2' : 'justify-center'
@@ -306,10 +326,29 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
-        {children}
+      {/* Main Content with margin for fixed sidebar */}
+      <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
+        <div className="min-h-screen">
+          {children}
+        </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, chatId: null, chatTitle: '' })}
+        onConfirm={() => {
+          if (deleteModal.chatId) {
+            deleteChat(deleteModal.chatId);
+            setDeleteModal({ isOpen: false, chatId: null, chatTitle: '' });
+          }
+        }}
+        title="Delete Chat"
+        message={`Are you sure you want to delete "${deleteModal.chatTitle}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 }

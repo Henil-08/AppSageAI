@@ -120,7 +120,10 @@ async def list_chat_sessions(
                 "job_title": chat_data.get("job_title", "Untitled"),
                 "company": chat_data.get("company", "Unknown"),
                 "message_count": chat_data.get("message_count", 0),
-                "preview": chat_data.get("job_description", "")[:100] + "..."
+                "preview": chat_data.get("job_description", "")[:100] + "...",
+                "tracker_status": chat_data.get("tracker_status", "not_applicable"),
+                "applied_date": chat_data.get("applied_date"),
+                "tracker_notes": chat_data.get("tracker_notes")
             })
         
         # Get total count
@@ -309,6 +312,50 @@ async def update_chat_details(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update chat details"
+        )
+    
+@router.patch("/{session_id}/tracker")
+async def update_tracker_status(
+    session_id: str,
+    tracker_status: str,
+    applied_date: Optional[str] = None,
+    notes: Optional[str] = None,
+    user_uid: str = Depends(get_current_user_uid)
+) -> Dict[str, Any]:
+    """Update job tracker status for a chat."""
+    try:
+        db = get_firestore_client()
+        
+        chat_ref = db.collection("users").document(user_uid)\
+            .collection("chats").document(session_id)
+        
+        if not chat_ref.get().exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat session not found"
+            )
+        
+        update_data = {
+            "tracker_status": tracker_status,
+            "tracker_updated_at": datetime.utcnow()
+        }
+        
+        if applied_date:
+            update_data["applied_date"] = applied_date
+        if notes:
+            update_data["tracker_notes"] = notes
+            
+        chat_ref.update(update_data)
+        
+        return {"message": "Tracker status updated", "status": tracker_status}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating tracker status: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update tracker status"
         )
 
 @router.delete("/{session_id}")
