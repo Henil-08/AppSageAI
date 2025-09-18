@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Sparkles, 
-  LogOut, 
-  User, 
-  FileText, 
+import {
+  Sparkles,
+  LogOut,
+  User,
+  FileText,
   MessageSquare,
   Settings,
   ChevronLeft,
@@ -42,7 +42,7 @@ export default function DashboardLayout({
   // Fetch recent chats
   const fetchRecentChats = async () => {
     if (!user) return;
-    
+
     setLoadingChats(true);
     try {
       const token = await getToken();
@@ -70,7 +70,7 @@ export default function DashboardLayout({
   const deleteChat = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     const confirmed = window.confirm('Are you sure you want to delete this chat?');
     if (!confirmed) return;
 
@@ -89,7 +89,7 @@ export default function DashboardLayout({
       if (response.ok) {
         toast.success('Chat deleted');
         fetchRecentChats(); // Refresh the list
-        
+
         // If we're on the deleted chat page, redirect
         if (pathname === `/dashboard/${sessionId}`) {
           router.push('/dashboard/new');
@@ -130,22 +130,22 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-claude-background flex overflow-hidden">
-      {/* Sidebar - Fixed height with internal scroll */}
-      <aside className={`${
-        sidebarOpen ? 'w-64' : 'w-16'
-      } bg-white border-r border-claude-border transition-all duration-300 flex flex-col h-screen overflow-hidden`}>
-        
-        {/* Logo Section - Fixed */}
+      {/* Sidebar */}
+      <aside
+        className={`${sidebarOpen ? 'w-64' : 'w-20'
+          } bg-white border-r border-claude-border transition-all duration-300 flex flex-col h-screen overflow-hidden`}
+      >
+        {/* Logo Section */}
         <div className="h-[65px] flex items-center justify-between px-4 border-b border-claude-border flex-shrink-0">
           {sidebarOpen && (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 transition-opacity duration-300">
               <Sparkles className="w-6 h-6 text-claude-accent-orange" />
               <span className="font-semibold text-lg">AppSageAI</span>
             </div>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 hover:bg-claude-background rounded-lg transition-colors"
+            className="flex items-center justify-center w-12 h-12 rounded-lg hover:bg-claude-background transition-colors"
           >
             {sidebarOpen ? (
               <ChevronLeft className="w-5 h-5 text-claude-text-secondary" />
@@ -155,20 +155,20 @@ export default function DashboardLayout({
           </button>
         </div>
 
-        {/* Navigation - Scrollable */}
+        {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
-          {/* New Chat Button */}
+          {/* New Chat */}
           <a
             href="/dashboard/chat/new"
-            className="w-full flex items-center justify-center space-x-2 mb-4 px-3 py-2 bg-claude-accent-orange text-white font-medium rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
+            className="w-full flex items-center justify-center space-x-2 mb-4 px-3 py-2 bg-claude-accent-orange text-white font-medium rounded-lg hover:bg-claude-accent-orange-hover transition-all duration-300"
           >
             <Plus className="w-4 h-4" />
-            {sidebarOpen && <span>New Chat</span>}
+            {sidebarOpen && <span className="transition-opacity duration-300">New Chat</span>}
           </a>
-          
-          {/* Collapsible Chats Section */}
+
+          {/* Collapsible Chats */}
           {sidebarOpen && (
-            <div className="mb-4">
+            <div className="mb-4 transition-all duration-300">
               <button
                 onClick={() => setChatsExpanded(!chatsExpanded)}
                 className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-claude-text-secondary hover:bg-claude-background rounded-lg transition-colors"
@@ -177,13 +177,14 @@ export default function DashboardLayout({
                   <MessageSquare className="w-4 h-4" />
                   <span>Recent Chats</span>
                 </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${
-                  chatsExpanded ? 'rotate-0' : '-rotate-90'
-                }`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-300 ${chatsExpanded ? 'rotate-0' : '-rotate-90'
+                    }`}
+                />
               </button>
-              
+
               {chatsExpanded && (
-                <div className="mt-2 space-y-1 max-h-64 overflow-y-auto">
+                <div className="mt-2 space-y-1 max-h-64 overflow-y-auto transition-all duration-300">
                   {loadingChats ? (
                     <div className="px-3 py-2 text-xs text-claude-text-muted">
                       Loading...
@@ -196,9 +197,8 @@ export default function DashboardLayout({
                     recentChats.map((chat) => (
                       <div
                         key={chat.session_id}
-                        className={`group flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-claude-background transition-colors cursor-pointer ${
-                          pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''
-                        }`}
+                        className={`group flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-claude-background transition-colors cursor-pointer ${pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''
+                          }`}
                       >
                         <a
                           href={`/dashboard/chat/${chat.session_id}`}
@@ -220,7 +220,7 @@ export default function DashboardLayout({
                       </div>
                     ))
                   )}
-                  
+
                   {recentChats.length > 0 && (
                     <a
                       href="/dashboard/chat"
@@ -233,64 +233,34 @@ export default function DashboardLayout({
               )}
             </div>
           )}
-          
+
+          {/* Main Nav Items */}
           <ul className="space-y-2">
-            <li>
-              <a
-                href="/dashboard/chat"
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                  pathname === '/dashboard/chat'
+            {[
+              { href: '/dashboard/chat', icon: MessageSquare, label: 'All Chats' },
+              { href: '/dashboard/jobs', icon: Briefcase, label: 'Job Tracker' },
+              { href: '/dashboard', icon: FileText, label: 'Resume' },
+              { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
+            ].map((item) => (
+              <li key={item.href}>
+                <a
+                  href={item.href}
+                  className={`flex items-center justify-center md:justify-start space-x-3 px-3 py-2 rounded-lg transition-all duration-300 ${pathname === item.href
                     ? 'bg-claude-accent-orange-light text-claude-accent-orange'
                     : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
-                }`}
-              >
-                <MessageSquare className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && <span>All Chats</span>}
-              </a>
-            </li>
-            <li>
-              <a
-                href="/dashboard/jobs"
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                  pathname === '/dashboard/jobs'
-                    ? 'bg-claude-accent-orange-light text-claude-accent-orange'
-                    : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
-                }`}
-              >
-                <Briefcase className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && <span>Job Tracker</span>}
-              </a>
-            </li>
-            <li>
-              <a
-                href="/dashboard"
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                  pathname === '/dashboard'
-                    ? 'bg-claude-accent-orange-light text-claude-accent-orange'
-                    : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
-                }`}
-              >
-                <FileText className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && <span>Resume</span>}
-              </a>
-            </li>
-            <li>
-              <a
-                href="/dashboard/settings"
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                  pathname === '/dashboard/settings'
-                    ? 'bg-claude-accent-orange-light text-claude-accent-orange'
-                    : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
-                }`}
-              >
-                <Settings className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && <span>Settings</span>}
-              </a>
-            </li>
+                    }`}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  {sidebarOpen && (
+                    <span className="transition-all duration-300">{item.label}</span>
+                  )}
+                </a>
+              </li>
+            ))}
           </ul>
         </nav>
 
-        {/* User Section - Fixed at bottom */}
+        {/* User Section */}
         <div className="p-4 border-t border-claude-border flex-shrink-0">
           <div className={`flex items-center ${sidebarOpen ? 'space-x-3' : 'justify-center'}`}>
             <div className="relative">
@@ -298,18 +268,18 @@ export default function DashboardLayout({
                 <img
                   src={user.photoURL}
                   alt={user.displayName || 'User'}
-                  className="w-10 h-10 rounded-full"
+                  className="w-12 h-12 rounded-full"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-claude-accent-orange-light flex items-center justify-center">
-                  <User className="w-5 h-5 text-claude-accent-orange" />
+                <div className="w-12 h-12 rounded-full bg-claude-accent-orange-light flex items-center justify-center">
+                  <User className="w-6 h-6 text-claude-accent-orange" />
                 </div>
               )}
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
             </div>
-            
+
             {sidebarOpen && (
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 transition-all duration-300">
                 <p className="text-sm font-medium text-claude-text-primary truncate">
                   {user.displayName || 'User'}
                 </p>
@@ -319,20 +289,24 @@ export default function DashboardLayout({
               </div>
             )}
           </div>
-          
-          {sidebarOpen && (
-            <button
-              onClick={signOut}
-              className="mt-4 w-full flex items-center justify-center space-x-2 px-3 py-2 bg-claude-background hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4 text-claude-text-secondary" />
-              <span className="text-sm text-claude-text-secondary">Sign out</span>
-            </button>
-          )}
+
+          {/* Sign out button (both collapsed + expanded) */}
+          <button
+            onClick={signOut}
+            className={`mt-4 w-full flex items-center ${sidebarOpen ? 'justify-center space-x-2' : 'justify-center'
+              } px-3 py-2 bg-claude-accent-orange hover:bg-claude-accent-orange-hover text-white font-medium rounded-lg transition-colors`}
+          >
+            <LogOut className="w-4 h-4" />
+            {sidebarOpen && (
+              <span className="transition-opacity duration-300">
+                Sign out
+              </span>
+            )}
+          </button>
         </div>
       </aside>
 
-      {/* Main Content - Full height with internal scroll */}
+      {/* Main Content */}
       <main className="flex-1 overflow-hidden">
         {children}
       </main>

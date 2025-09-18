@@ -1087,35 +1087,43 @@ export default function ChatPage() {
       )}
 
       {/* Input Area - matches sidebar bottom */}
-      <div className="bg-white border-t border-claude-border px-6 py-4 flex-shrink-0">
+      <div className="bg-white border-t border-claude-border px-6 py-2.5 flex-shrink-0 relative z-[999]">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-end space-x-3 relative">
-            <div className="flex-1 relative">
-              <div className="relative">
+            {/* Wrapper: min-h = button height, expands upward */}
+            <div className="flex-1 relative flex flex-col-reverse min-h-[80px] z-[9999]">
+              {/* Flex wrapper centers text vertically */}
+              <div className="relative flex items-center h-full min-h-[80px]">
                 <textarea
                   ref={inputRef}
                   value={inputMessage}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder={
-                    isNewChat 
-                      ? "Paste a job listing or ask about your resume... (Cmd/Ctrl + Enter to send)"
-                      : "Ask a follow-up question... (Cmd/Ctrl + Enter to send)"
+                    isNewChat
+                      ? "Paste a job listing or ask about your resume..."
+                      : "Ask a follow-up question..."
                   }
-                  className="w-full px-4 py-2 bg-claude-background border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange resize-none overflow-y-auto"
-                  style={{ minHeight: '40px', maxHeight: '200px' }}
+                  className="w-full h-full min-h-[80px] max-h-[200px] px-4 py-6 box-border bg-claude-background border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange resize-none overflow-y-auto leading-normal"
                 />
-                {/* Show formatted text with bold orange tags */}
+                {/* Highlighted tags overlay */}
                 {inputMessage && selectedTags.size > 0 && (
-                  <div className="absolute inset-0 px-4 py-2 pointer-events-none whitespace-pre-wrap" style={{ color: 'transparent' }}>
+                  <div
+                    className="absolute inset-0 px-4 py-2 pointer-events-none whitespace-pre-wrap"
+                    style={{
+                      color: "transparent",
+                      fontSize: "inherit",
+                      lineHeight: "inherit",
+                    }}
+                  >
                     {parseMessageWithTags(inputMessage)}
                   </div>
                 )}
               </div>
-              
+
               {/* Resume Selector */}
               {showResumeSelector && (
-                <div className="absolute bottom-full mb-2 left-0 bg-white rounded-lg shadow-lg border border-claude-border z-50 w-72 max-h-64 overflow-y-auto">
+                <div className="absolute bottom-full mb-2 left-0 bg-white rounded-lg shadow-lg border border-claude-border z-[99999] w-72 max-h-64 overflow-y-auto">
                   <div className="p-2">
                     <div className="text-xs font-medium text-claude-text-secondary px-2 py-1">
                       Select Resume (↑↓ to navigate, Enter to select)
@@ -1168,22 +1176,25 @@ export default function ChatPage() {
                 </div>
               )}
             </div>
-            
+
+            {/* Send Button */}
             <button
               onClick={sendMessage}
               disabled={!inputMessage.trim() || sending || analyzing}
-              className="w-10 h-10 flex items-center justify-center bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-40 h-20 flex items-center justify-center space-x-2 px-4 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
+              <span className="font-medium leading-none">Send</span>
               <Send className="w-5 h-5" />
             </button>
           </div>
-          
+
           <div className="mt-2 text-xs text-claude-text-muted text-center">
-            Press @ to select resume • Cmd/Ctrl + Enter to send
+            Press @ to select resume | Cmd/Ctrl + Enter to send
           </div>
         </div>
       </div>
 
+      
       {/* Settings Modal */}
       {showSettings && <SettingsModal />}
       
