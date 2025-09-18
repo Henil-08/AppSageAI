@@ -28,22 +28,18 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy project files and venv
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app /app
 
-# Copy application code
-COPY . .
+# Ensure venv is on PATH
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
 EXPOSE 8000
-
-ENV CORS_ORIGINS=["https://appsageai.com","https://appsageai.com"]
-ENV ALLOWED_FILE_TYPES=["pdf"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
