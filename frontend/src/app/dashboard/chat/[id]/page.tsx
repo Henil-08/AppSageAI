@@ -135,42 +135,26 @@ export default function ChatPage() {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
-  // Enhanced render function for inline resume highlighting in textarea
-  const renderInputWithHighlights = () => {
-    const parts = inputMessage.split(/(@[\w\s.-]+)/g);
+  // Parse message content with bold orange for tags
+  const parseMessageWithTags = (text: string) => {
+    const parts = text.split(/(@[\w\s.-]+)/g);
     
-    return (
-      <div 
-        className="absolute inset-0 px-4 py-2 pointer-events-none whitespace-pre-wrap break-words overflow-hidden"
-        style={{ 
-          wordBreak: 'break-word',
-          overflowWrap: 'break-word',
-          fontSize: '14px',
-          lineHeight: '20px',
-          fontFamily: 'inherit'
-        }}
-      >
-        {parts.map((part, index) => {
-          if (part.startsWith('@') && selectedTags.has(part)) {
-            return (
-              <span
-                key={index}
-                className="inline-block px-1.5 py-0.5 rounded-md"
-                style={{ 
-                  backgroundColor: '#FFE8D9',   // light orange background
-                  color: '#EA5A0C',             // strong orange text
-                  // borderBottom: '2px solid #EA5A0C',
-                  fontWeight: '500'
-                }}
-              >
-                {part}
-              </span>
-            );
-          }
-          return <span key={index} style={{ color: 'transparent' }}>{part}</span>;
-        })}
-      </div>
-    );
+    return parts.map((part, index) => {
+      if (part.startsWith('@') && selectedTags.has(part)) {
+        return (
+          <span
+            key={index}
+            style={{ 
+              color: '#EA5A0C',
+              fontWeight: '600'
+            }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
   };
 
   // Parse message content for display with markdown support
@@ -181,15 +165,14 @@ export default function ChatPage() {
       
       return parts.map((part, index) => {
         if (part.startsWith('@') && selectedTags.has(part)) {
+          const filename = part.substring(1).trim();
           return (
             <span
               key={index}
-              style={{ 
-                color: '#EA5A0C',   // orange
-                fontWeight: 600     // bold
-              }}
+              className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded text-xs font-medium bg-white/20 text-white border border-white/30"
             >
-              {part}
+              <FileText className="w-3 h-3 mr-1" />
+              {filename}
             </span>
           );
         }
@@ -353,15 +336,84 @@ export default function ChatPage() {
     fetchResumes();
   }, []);
 
-  // Create chat and detect job - Store FULL JD
+  // Update chat in backend after creation
+  const updateChatInBackend = async (sessionId: string, title: string, company: string, jobDesc: string) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/${sessionId}/update`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            job_title: title,
+            company: company,
+            job_description: jobDesc,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        // Refresh sidebar
+        window.dispatchEvent(new CustomEvent('refreshSidebarChats'));
+      }
+    } catch (error) {
+      console.error('Error updating chat:', error);
+    }
+  };
+
+  // Create chat and detect job - Store FULL JD and UPDATE backend
   const createChatSession = async (text: string) => {
     try {
       const token = await getToken();
       let detectedTitle = "General Consultation";
       let detectedCompany = "Career Development";
-      let fullJobDescription = text; // Store the FULL text
+      const fullJobDescription = text; // Always keep full text
       
-      // Try to detect job details (but keep the full JD)
+      // Create the chat first with default values
+      const createResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/create`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            job_title: detectedTitle,
+            company: detectedCompany,
+            job_description: fullJobDescription,
+          }),
+        }
+      );
+
+      if (!createResponse.ok) {
+        throw new Error('Failed to create chat');
+      }
+
+      const data = await createResponse.json();
+      const newSessionId = data.session_id;
+      
+      // Update state immediately
+      setActualSessionId(newSessionId);
+      setChatSession({
+        session_id: newSessionId,
+        job_title: detectedTitle,
+        company: detectedCompany,
+        job_description: fullJobDescription,
+        messages: []
+      });
+      setEditedTitle(detectedTitle);
+      setEditedCompany(detectedCompany);
+      setEditedJobDescription(fullJobDescription);
+      
+      // Update URL
+      window.history.replaceState({}, '', `/dashboard/chat/${newSessionId}`);
+
+      // Try to detect job details if text is long enough
       if (text.length > 100) {
         try {
           setDetectingJob(true);
@@ -379,66 +431,36 @@ export default function ChatPage() {
 
           if (extractResponse.ok) {
             const details = await extractResponse.json();
-            if (details.is_job_listing) {
-              detectedTitle = details.job_title || "Untitled Position";
-              detectedCompany = details.company || "Unknown Company";
-              // Keep the FULL original text as job description, not the summary
-              fullJobDescription = text;
+            if (details.is_job_listing && (details.job_title || details.company)) {
+              detectedTitle = details.job_title || detectedTitle;
+              detectedCompany = details.company || detectedCompany;
+              
+              // Update local state with detected values
+              setChatSession(prev => prev ? {
+                ...prev,
+                job_title: detectedTitle,
+                company: detectedCompany,
+              } : null);
+              setEditedTitle(detectedTitle);
+              setEditedCompany(detectedCompany);
+              
+              // Update backend with detected title and company
+              await updateChatInBackend(newSessionId, detectedTitle, detectedCompany, fullJobDescription);
             }
           }
         } catch (error) {
-          console.log('Detection failed, continuing...');
+          console.log('Detection failed, continuing with defaults');
         } finally {
           setDetectingJob(false);
         }
       }
       
-      // Create the chat with FULL job description
-      const createResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/create`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            job_title: detectedTitle,
-            company: detectedCompany,
-            job_description: fullJobDescription, // Send FULL text
-          }),
-        }
-      );
-
-      if (createResponse.ok) {
-        const data = await createResponse.json();
-        const newSessionId = data.session_id;
-        
-        // Update state with detected title/company but FULL job description
-        setActualSessionId(newSessionId);
-        setChatSession({
-          session_id: newSessionId,
-          job_title: detectedTitle,
-          company: detectedCompany,
-          job_description: fullJobDescription, // Store FULL text
-          messages: []
-        });
-        setEditedTitle(detectedTitle);
-        setEditedCompany(detectedCompany);
-        setEditedJobDescription(fullJobDescription); // Store FULL text
-        
-        // Update URL
-        window.history.replaceState({}, '', `/dashboard/chat/${newSessionId}`);
-        
-        // Refresh sidebar chats after creation
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('refreshSidebarChats'));
-        }, 1000);
-        
-        return newSessionId;
-      }
+      // Refresh sidebar
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('refreshSidebarChats'));
+      }, 1000);
       
-      throw new Error('Failed to create chat');
+      return newSessionId;
     } catch (error) {
       console.error('Error creating chat:', error);
       setDetectingJob(false);
@@ -478,9 +500,7 @@ export default function ChatPage() {
       }
       
       try {
-        setDetectingJob(true);
         const newId = await createChatSession(jobDescriptionText);
-        setDetectingJob(false);
         
         // For quick actions, add a user message showing which action was clicked
         if (analysisType !== 'custom_query') {
@@ -501,7 +521,6 @@ export default function ChatPage() {
         // Continue with analysis using new session
         await performAnalysis(newId, analysisType, analysisType === 'custom_query' ? jobDescriptionText : undefined);
       } catch (error) {
-        setDetectingJob(false);
         toast.error('Failed to create chat session');
         return;
       }
@@ -1043,9 +1062,9 @@ export default function ChatPage() {
 
       {/* Quick Actions Bar */}
       {messages.length > 0 && actualSessionId !== 'new' && (
-        <div className="bg-white border-t border-claude-border px-6 py-3 flex-shrink-0">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+        <div className="bg-white border-t border-claude-border px-6 flex items-center justify-center flex-shrink-0" style={{ height: '52px' }}>
+          <div className="max-w-4xl w-full mx-auto">
+            <div className="flex items-center justify-center space-x-2">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -1067,27 +1086,32 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Input Area */}
+      {/* Input Area - matches sidebar bottom */}
       <div className="bg-white border-t border-claude-border px-6 py-4 flex-shrink-0">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-end space-x-3 relative">
             <div className="flex-1 relative">
-              {/* Highlight overlay */}
-              {inputMessage && renderInputWithHighlights()}
-              
-              <textarea
-                ref={inputRef}
-                value={inputMessage}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  isNewChat 
-                    ? "Paste a job listing or ask about your resume... (Cmd/Ctrl + Enter to send)"
-                    : "Ask a follow-up question... (Cmd/Ctrl + Enter to send)"
-                }
-                className="w-full px-4 py-2 bg-transparent border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange resize-none overflow-y-auto relative z-10"
-                style={{ minHeight: '40px', maxHeight: '200px' }}
-              />
+              <div className="relative">
+                <textarea
+                  ref={inputRef}
+                  value={inputMessage}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    isNewChat 
+                      ? "Paste a job listing or ask about your resume... (Cmd/Ctrl + Enter to send)"
+                      : "Ask a follow-up question... (Cmd/Ctrl + Enter to send)"
+                  }
+                  className="w-full px-4 py-2 bg-claude-background border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange resize-none overflow-y-auto"
+                  style={{ minHeight: '40px', maxHeight: '200px' }}
+                />
+                {/* Show formatted text with bold orange tags */}
+                {inputMessage && selectedTags.size > 0 && (
+                  <div className="absolute inset-0 px-4 py-2 pointer-events-none whitespace-pre-wrap" style={{ color: 'transparent' }}>
+                    {parseMessageWithTags(inputMessage)}
+                  </div>
+                )}
+              </div>
               
               {/* Resume Selector */}
               {showResumeSelector && (
@@ -1148,7 +1172,7 @@ export default function ChatPage() {
             <button
               onClick={sendMessage}
               disabled={!inputMessage.trim() || sending || analyzing}
-              className="p-2 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-10 h-10 flex items-center justify-center bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-5 h-5" />
             </button>
