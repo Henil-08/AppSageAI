@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Search,
   Filter,
-  Trash2
+  Trash2,
+  Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -111,7 +112,7 @@ export default function ChatsPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex justify-between items-start mb-5">
         <div>
           <h1 className="text-3xl font-semibold text-claude-text-primary mb-2">
             Your Chats
@@ -130,8 +131,22 @@ export default function ChatsPage() {
         </button>
       </div>
 
+      {/* Privacy Info */}
+      <div className="mt-4 items-center bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-start space-x-3 shadow-soft">
+        <img
+          src="/shield-privacy.png"
+          alt="Privacy Shield"
+          className={`w-5 h-5 flex-shrink-0`}
+        />
+        <p className="text-sm text-claude-text-secondary">
+          All your Chats are <span className="font-medium text-green-700">stored securely</span> on the server with 
+          <span className="font-medium text-green-700"> AES-256 encryption</span>. 
+          Only visible to you.
+        </p>
+      </div>
+
       {/* Search and Filter Bar */}
-      <div className="flex items-center space-x-4 mb-6">
+      <div className="mt-6 flex items-center space-x-4 mb-6">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-claude-text-muted" />
           <input
@@ -142,11 +157,6 @@ export default function ChatsPage() {
             className="w-full pl-10 pr-4 py-2 bg-white border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange"
           />
         </div>
-        
-        <button className="flex items-center space-x-2 px-4 py-2 bg-white border border-claude-border rounded-lg hover:bg-claude-background transition-colors">
-          <Filter className="w-5 h-5 text-claude-text-secondary" />
-          <span className="text-claude-text-secondary">Filter</span>
-        </button>
       </div>
 
       {/* Chats Grid */}
@@ -181,14 +191,14 @@ export default function ChatsPage() {
             <div
               key={chat.session_id}
               onClick={() => router.push(`/dashboard/chat/${chat.session_id}`)}
-              className="bg-white rounded-xl border border-claude-border p-6 hover:shadow-medium hover:border-claude-accent-orange/30 transition-all cursor-pointer group"
+              className="bg-white rounded-xl border border-claude-border p-5 hover:shadow-medium hover:border-claude-accent-orange/30 transition-all cursor-pointer group"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-claude-accent-orange-light rounded-lg flex items-center justify-center">
+              <div className="flex justify-between mb-4 items-start">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 bg-claude-accent-orange-light rounded-lg flex items-center justify-center flex-shrink-0">
                     <Briefcase className="w-5 h-5 text-claude-accent-orange" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-claude-text-primary line-clamp-1">
                       {chat.job_title || 'Untitled Position'}
                     </h3>
@@ -200,15 +210,17 @@ export default function ChatsPage() {
                 
                 <button
                   onClick={(e) => deleteChat(chat.session_id, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
+                  className="w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all flex-shrink-0 ml-1"
                 >
                   <Trash2 className="w-4 h-4 text-red-500" />
                 </button>
               </div>
 
-              <p className="text-sm text-claude-text-secondary line-clamp-2 mb-4">
+              <div className="flex-1 mb-4">
+              <p className="text-sm text-claude-text-secondary line-clamp-3 mb-4">
                 {chat.preview}
               </p>
+              </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 text-xs text-claude-text-muted">

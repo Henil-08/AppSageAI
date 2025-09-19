@@ -1,9 +1,7 @@
 'use client';
-
 import { Trash2 } from 'lucide-react';
 
 import { useEffect, useState } from 'react';
-
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,7 +15,8 @@ import {
   ChevronDown,
   Menu,
   Briefcase,
-  Plus
+  Plus,
+  Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -170,97 +169,117 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 overflow-y-auto">
+        <nav className="flex-1 h-full p-4 overflow-y-auto">
           {/* New Chat */}
           <Link
             href="/dashboard/chat/new"
-            className="w-full flex items-center justify-center space-x-2 mb-4 px-3 py-2 bg-claude-accent-orange text-white font-medium rounded-lg hover:bg-claude-accent-orange-hover transition-all duration-300"
+            className="w-full flex mb-4 items-center h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-300"
           >
-            <Plus className="w-4 h-4" />
-            {sidebarOpen && <span className="transition-opacity duration-300">New Chat</span>}
+            <Plus className="w-5 h-5 flex-shrink-0" />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out
+                ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+            >
+              New Chat
+            </span>
           </Link>
 
           {/* Collapsible Chats */}
           {sidebarOpen && (
-            <div className="mb-4 transition-all duration-300">
+            <div className={`transition-all duration-300 ease-in-out mb-2 overflow-hidden ${sidebarOpen ? (chatsExpanded ? 'max-h-[400px]' : 'max-h-10') : 'max-h-0'}`}>
               <button
                 onClick={() => setChatsExpanded(!chatsExpanded)}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-claude-text-secondary hover:bg-claude-background rounded-lg transition-colors"
+                className={`w-full h-10 flex items-center justify-center md:justify-between px-3 rounded-lg ${chatsExpanded ? 'bg-claude-accent-orange-light' : 'bg-claude-light'} transition-colors`}
               >
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Recent Chats</span>
+                {/* Icon + Text */}
+                <div className={`flex items-center ${chatsExpanded ? 'text-claude-accent-orange' : 'text-claude-primary'}`}>
+                  <MessageSquare
+                    className={`w-5 h-5 flex-shrink-0 transition-opacity duration-300 ease-in-out
+                      ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}
+                  />
+                  <span
+                    className={`overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out
+                      ${sidebarOpen ? 'ml-3 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+                  >
+                    Recent Chats
+                  </span>
                 </div>
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-300 ${chatsExpanded ? 'rotate-0' : '-rotate-90'
-                    }`}
-                />
+
+                {/* Chevron */}
+                {sidebarOpen && (
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-300 ${chatsExpanded ? 'rotate-0' : '-rotate-90'}`}
+                  />
+                )}
               </button>
 
-              {chatsExpanded && (
-                <div className="mt-2 space-y-1 max-h-64 overflow-y-auto transition-all duration-300">
-                  {loadingChats ? (
-                    <div className="px-3 py-2 text-xs text-claude-text-muted">
-                      Loading...
-                    </div>
-                  ) : recentChats.length === 0 ? (
-                    <div className="px-3 py-2 text-xs text-claude-text-muted">
-                      No chats yet
-                    </div>
-                  ) : (
-                    recentChats.map((chat) => (
-                      <div
-                        key={chat.session_id}
-                        className={`group flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-claude-background transition-colors ${pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''
-                          }`}
-                      >
-                        <Link
-                          href={`/dashboard/chat/${chat.session_id}`}
-                          className="flex-1 min-w-0"
-                        >
-                          <div className="text-sm text-claude-text-primary truncate">
-                            {chat.job_title || 'Untitled'}
-                          </div>
-                          <div className="text-xs text-claude-text-muted truncate">
-                            {chat.company || 'No company'}
-                          </div>
-                        </Link>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteModal({
-                              isOpen: true,
-                              chatId: chat.session_id,
-                              chatTitle: chat.job_title || 'Untitled'
-                            });
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
-                        >
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </button>
-                      </div>
-                    ))
-                  )}
-
-                  {recentChats.length > 0 && (
-                    <Link
-                      href="/dashboard/chat"
-                      className="block px-3 py-2 text-xs text-claude-accent-orange hover:underline"
+              {/* Expanded Chat List */}
+              <div
+                className={`mt-2 space-y-1 max-h-64 overflow-y-auto transition-all duration-300 ease-in-out
+                  ${chatsExpanded && sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+              >
+                {loadingChats ? (
+                  <div className="px-3 py-2 text-xs text-claude-text-muted">
+                    Loading...
+                  </div>
+                ) : recentChats.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-claude-text-muted">
+                    No chats yet
+                  </div>
+                ) : (
+                  recentChats.map((chat) => (
+                    <div
+                      key={chat.session_id}
+                      className={`group flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-claude-accent-orange-light transition-colors ${pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''
+                        }`}
                     >
-                      View all chats →
-                    </Link>
-                  )}
-                </div>
-              )}
+                      <Link
+                        href={`/dashboard/chat/${chat.session_id}`}
+                        className="flex-1 min-w-0"
+                      >
+                        <div className="text-sm text-claude-text-primary truncate">
+                          {chat.job_title || 'Untitled'}
+                        </div>
+                        <div className="text-xs text-claude-text-muted truncate">
+                          {chat.company || 'No company'}
+                        </div>
+                      </Link>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteModal({
+                            isOpen: true,
+                            chatId: chat.session_id,
+                            chatTitle: chat.job_title || 'Untitled'
+                          });
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
+                      >
+                        <Trash2 className="w-3 h-3 text-red-500" />
+                      </button>
+                    </div>
+                  ))
+                )}
+
+                {recentChats.length > 0 && (
+                  <Link
+                    href="/dashboard/chat"
+                    className="block px-3 py-2 text-xs text-claude-accent-orange hover:underline"
+                  >
+                    View all chats →
+                  </Link>
+                )}
+              </div>
             </div>
           )}
 
           {/* Main Nav Items */}
           <ul className="space-y-2">
             {[
+              { href: '/dashboard', icon: Sparkles, label: 'Dashboard' },
               { href: '/dashboard/chat', icon: MessageSquare, label: 'All Chats' },
               { href: '/dashboard/jobs', icon: Briefcase, label: 'Job Tracker' },
-              { href: '/dashboard', icon: FileText, label: 'Resume' },
+              { href: '/dashboard/resume', icon: FileText, label: 'Resume' },
             ].map((item) => (
               <li key={item.href}>
                 <Link
@@ -279,6 +298,40 @@ export default function DashboardLayout({
             ))}
           </ul>
         </nav>
+        
+        {/* Meta Llama Card */}
+        <div className="px-4">
+          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200 shadow-sm flex items-center transition-all duration-300">
+            <img
+              src="/meta-logo.png"
+              alt="Meta Logo"
+              className={`w-5 h-5 flex-shrink-0 ${sidebarOpen ? '' : '-mr-2'}`}
+            />
+            <span
+              className={`overflow-hidden text-sm font-medium text-blue-800 whitespace-nowrap transition-all duration-300 ease-in-out
+                ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+            >
+              Powered by Llama 3.3 
+            </span>
+          </div>
+        </div>
+
+        {/* Privacy First Card */}
+        <div className="px-4">
+          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 shadow-sm flex items-center transition-all duration-300">
+            <img
+              src="/shield-privacy.png"
+              alt="Privacy Shield"
+              className={`w-5 h-5 flex-shrink-0 ${sidebarOpen ? '' : '-mr-2'}`}
+            />
+            <span
+              className={`overflow-hidden text-sm font-medium text-green-800 whitespace-nowrap transition-all duration-300 ease-in-out
+                ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+            >
+              Privacy First Application
+            </span>
+          </div>
+        </div>
 
         {/* User Section */}
         <div className="p-4 border-t border-claude-border flex-shrink-0">
@@ -313,15 +366,15 @@ export default function DashboardLayout({
           {/* Sign out button */}
           <button
             onClick={signOut}
-            className={`mt-4 w-full flex items-center ${sidebarOpen ? 'justify-center space-x-2' : 'justify-center'
-              } px-3 py-2 bg-claude-accent-orange hover:bg-claude-accent-orange-hover text-white font-medium rounded-lg transition-colors`}
+            className="mt-4 w-full flex items-center h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange hover:bg-claude-accent-orange-hover text-white transition-all duration-300"
           >
-            <LogOut className="w-4 h-4" />
-            {sidebarOpen && (
-              <span className="transition-opacity duration-300">
-                Sign out
-              </span>
-            )}
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out
+                ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+            >
+              Sign out
+            </span>
           </button>
         </div>
       </aside>

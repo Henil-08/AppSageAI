@@ -6,17 +6,16 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { 
   Briefcase,
   Calendar,
-  MapPin,
   CheckCircle,
   Clock,
   XCircle,
   MessageSquare,
-  Filter,
   AlertCircle,
   TrendingUp,
   Edit2,
   Save,
-  X
+  X,
+  Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -182,12 +181,26 @@ export default function JobTrackerPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-claude-text-primary mb-2">
+      <div className="mb-4">
+        <h1 className="text-3xl font-semibold text-claude-text-primary mb-3">
           Application Tracker
         </h1>
         <p className="text-claude-text-secondary">
           Track the status of all your job application chats
+        </p>
+      </div>
+
+      {/* Privacy Info */}
+      <div className="mt-3 items-center bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-start space-x-3 shadow-soft mb-6">
+        <img
+            src="/shield-privacy.png"
+            alt="Privacy Shield"
+            className={`w-5 h-5 flex-shrink-0`}
+        />
+        <p className="text-sm text-claude-text-secondary">
+          All your Chats and Applications are <span className="font-medium text-green-700">stored securely</span> on the server with 
+          <span className="font-medium text-green-700"> AES-256 encryption</span>. 
+          Only visible to you.
         </p>
       </div>
 

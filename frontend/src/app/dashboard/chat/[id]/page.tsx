@@ -15,7 +15,7 @@ import {
   TrendingUp,
   PenTool,
   Percent,
-  MessageSquare,
+  Shield,
   ThumbsUp,
   ThumbsDown,
   RefreshCw,
@@ -921,13 +921,26 @@ export default function ChatPage() {
             </div>
           </div>
           
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 hover:bg-claude-background rounded-lg transition-colors"
-            title="Edit chat details"
-          >
-            <Settings className="w-5 h-5 text-claude-text-secondary" />
-          </button>
+          {/* Right side: Privacy + Settings */}
+          <div className="flex items-center space-x-3">
+            {/* Privacy Shield */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-2 border border-green-200 shadow-sm flex items-center">
+              <img
+                  src="/shield-privacy.png"
+                  alt="Privacy Shield"
+                  className={`w-5 h-5 flex-shrink-0`}
+              />
+            </div>
+
+            {/* Settings */}
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 hover:bg-claude-accent-orange-light text-claude-text-secondary hover:text-claude-accent-orange rounded-lg transition-colors"
+              title="Edit chat details"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1018,9 +1031,9 @@ export default function ChatPage() {
                           title="Copy message"
                         >
                           {copiedMessageId === message.message_id ? (
-                            <CheckCheck className="w-4 h-4 text-green-500" />
+                            <CheckCheck className="w-4 h-4 text-blue-500" />
                           ) : (
-                            <Copy className="w-4 h-4 text-claude-text-muted hover:text-claude-text-secondary" />
+                            <Copy className="w-4 h-4 text-claude-text-muted hover:text-blue-500" />
                           )}
                         </button>
                         <button
@@ -1086,14 +1099,14 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Input Area - matches sidebar bottom */}
-      <div className="bg-white border-t border-claude-border px-6 py-2.5 flex-shrink-0 relative z-[999]">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-end space-x-3 relative">
+      {/* Input Area */}
+      <div className="bg-white border-t border-claude-border px-6 py-2.5 flex-shrink-0 relative">
+        <div className="mt-2 max-w-4xl mx-auto">
+          <div className="flex items-center space-x-5 relative">
             {/* Wrapper: min-h = button height, expands upward */}
-            <div className="flex-1 relative flex flex-col-reverse min-h-[80px] z-[9999]">
+            <div className="flex-1 flex-col-reverse">
               {/* Flex wrapper centers text vertically */}
-              <div className="relative flex items-center h-full min-h-[80px]">
+              <div className="relative">
                 <textarea
                   ref={inputRef}
                   value={inputMessage}
@@ -1104,12 +1117,12 @@ export default function ChatPage() {
                       ? "Paste a job listing or ask about your resume..."
                       : "Ask a follow-up question..."
                   }
-                  className="w-full h-full min-h-[80px] max-h-[200px] px-4 py-6 box-border bg-claude-background border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange resize-none overflow-y-auto leading-normal"
+                  className="w-full h-full min-h-[80px] max-h-[200px] px-4 py-8 box-border bg-claude-background border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange resize-none overflow-y-auto leading-normal"
                 />
                 {/* Highlighted tags overlay */}
                 {inputMessage && selectedTags.size > 0 && (
                   <div
-                    className="absolute inset-0 px-4 py-2 pointer-events-none whitespace-pre-wrap"
+                    className="relative inset-0 px-4 py-2 pointer-events-none whitespace-pre-wrap"
                     style={{
                       color: "transparent",
                       fontSize: "inherit",
