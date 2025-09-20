@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import Link from 'next/link';
 import { 
-  Sparkles,
-  MessageSquare,
   FileText,
   Plus,
   Clock,
@@ -15,9 +13,9 @@ import {
   Github,
   Linkedin,
   GraduationCap,
-  Globe,
   Lock,
-  Shield
+  MessageSquareDot,
+  LucideAppWindow
 } from 'lucide-react';
 
 export default function DashboardHomePage() {
@@ -98,13 +96,13 @@ export default function DashboardHomePage() {
   };
 
   const statCards = [
-    { icon: MessageSquare, label: 'Active Chats', value: stats.activeChats, color: 'text-blue-500' },
-    { icon: TrendingUp, label: 'Applications', value: stats.applications, color: 'text-green-500' },
-    { icon: Clock, label: 'This Week', value: stats.thisWeek, color: 'text-purple-500' }
+    { icon: MessageSquareDot, label: 'Active Chats', value: stats.activeChats, color: 'text-blue-500' },
+    { icon: TrendingUp, label: 'Applications', value: stats.applications, color: 'text-yellow-500' },
+    { icon: Clock, label: 'This Week', value: stats.thisWeek, color: 'text-pink-500' }
   ];
 
   const socialLinks = [
-    { name: 'Website', icon: Globe, href: 'https://henilgajjar.framer.ai/', color: 'hover:text-claude-accent-orange' },
+    { name: 'Website', icon: LucideAppWindow, href: 'https://henilgajjar.framer.ai/', color: 'hover:text-claude-accent-orange' },
     { name: 'GitHub', icon: Github, href: 'https://github.com/Henil-08', color: 'hover:text-gray-800' },
     { name: 'LinkedIn', icon: Linkedin, href: 'https://linkedin.com/in/henilgajjar', color: 'hover:text-blue-600' },
     { name: 'Google Scholar', icon: GraduationCap, href: 'https://scholar.google.com/citations?user=RdSGiWYAAAAJ&hl=en', color: 'hover:text-green-600' }
@@ -135,36 +133,40 @@ export default function DashboardHomePage() {
             <div className={`bg-white rounded-2xl p-6 shadow-md border border-claude-border transition-all duration-700 delay-100 transform ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
             }`}>
-                <div className="flex items-start space-x-3">
-                <div className="p-2 bg-claude-accent-orange-light rounded-lg">
-                    <Sparkles className="w-5 h-5 text-claude-accent-orange" />
-                </div>
-                <div>
-                    <h2 className="text-lg font-semibold text-claude-text-primary mb-1">
-                    Welcome to AppSageAI
-                    </h2>
-                    <p className="text-sm text-claude-text-secondary leading-relaxed">
-                    Your AI-powered job application assistant. I help you analyze job descriptions, 
-                    optimize your resume for ATS systems, track applications, and provide personalized 
-                    insights. Let's make your job search smarter and more successful!
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-3">
-                    <Link
-                        href="/dashboard/chat/new"
-                        className="inline-flex items-center space-x-2 px-4 py-2 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span>Start New Analysis</span>
-                    </Link>
-                    <Link
-                        href="/dashboard/resume"
-                        className="inline-flex items-center space-x-2 px-4 py-2 bg-white text-claude-text-primary border border-claude-border rounded-lg hover:bg-claude-background transition-colors"
-                    >
-                        <FileText className="w-4 h-4" />
-                        <span>Upload Resume</span>
-                    </Link>
+                <div className="flex items-start justify-center space-x-3">
+                    <div className="p-2 w-12 h-12 bg-claude-accent-orange-light rounded-lg">
+                        <img
+                            src="/appsageai-icon.png"
+                            alt="AppSageAI Logo"
+                            className={`w-full h-full flex-shrink-0`}
+                        />
                     </div>
-                </div>
+                    <div className="flex-1">
+                        <h2 className="text-lg font-semibold text-claude-text-primary mb-1 flex items-center">
+                        Welcome to AppSageAI
+                        </h2>
+                        <p className="text-sm text-claude-text-secondary leading-relaxed">
+                        Your AI-powered job application assistant. I help you analyze job descriptions, 
+                        optimize your resume for ATS systems, track applications, and provide personalized 
+                        insights. Let's make your job search smarter and more successful!
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-3">
+                        <Link
+                            href="/dashboard/chat/new"
+                            className="inline-flex h-10 items-center space-x-2 px-4 py-2 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Start New Chat</span>
+                        </Link>
+                        <Link
+                            href="/dashboard/resume"
+                            className="inline-flex h-10 items-center space-x-2 px-4 py-2 bg-white text-claude-text-primary border border-claude-border rounded-lg hover:bg-claude-background transition-colors"
+                        >
+                            <FileText className="w-4 h-4" />
+                            <span>Upload Resume</span>
+                        </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -173,45 +175,43 @@ export default function DashboardHomePage() {
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
             }`}>
                 <div className="flex items-start space-x-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                <img
-                    src="/shield-privacy.png"
-                    alt="Privacy Shield"
-                    className={`w-5 h-5 flex-shrink-0`}
-                />
-                </div>
-                <div className="flex-1">
-                    <h3 className="text-base font-semibold text-green-900 mb-1 flex items-center">
-                    <Lock className="w-4 h-4 mr-1" />
-                    Privacy-First Architecture
-                    </h3>
-                    <p className="text-sm text-green-800 leading-relaxed">
-                    Your data is protected with server-side AES-256 encryption using dynamically generated keys. 
-                    Each user has a unique encryption key that automatically rotates, ensuring even I (the developer) 
-                    cannot access your personal information. While not fully end-to-end encrypted yet, your resumes 
-                    and conversations are secured with bank-level encryption standards.
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                        <Lock className="w-3 h-3 mr-1" />
-                        AES-256 Encryption
-                    </span>
-                    <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                        Rotating Keys
-                    </span>
-                    <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                        No PII in Logs
-                    </span>
-                    <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                        GDPR Compliant
-                    </span>
+                    <div className="p-2 w-12 h-12 bg-green-100 rounded-lg">
+                    <img
+                        src="/shield-privacy.png"
+                        alt="Privacy Shield"
+                        className={`w-full h-full flex-shrink-0`}
+                    />
                     </div>
-                </div>
+                    <div className="flex-1">
+                        <h2 className="text-lg font-semibold text-green-900 mb-1 flex items-center">
+                        Privacy-First Architecture
+                        </h2>
+                        <p className="text-sm text-green-800 leading-relaxed">
+                        Your data is protected with server-side AES-256 encryption using dynamically generated keys. 
+                        Each user has a unique encryption key that automatically rotates, ensuring even I (the developer) 
+                        cannot access your personal information.
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-3">
+                        <span className="inline-flex justify-center gap-1 items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                            <Lock className="w-3 h-3" />
+                            <span className='font-semibold'> AES-256 </span> 
+                            Encryption
+                        </span>
+                        <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                            Rotating Keys
+                        </span>
+                        <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                            No PII in Logs
+                        </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Quick Stats */}
-            <div className="ml-20 mr-20 grid grid-cols-3 gap-4">
+            <div className={`ml-20 mr-20 grid grid-cols-3 gap-4 transition-all duration-700 delay-200
+                ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}
+              `}>
                 {statCards.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
@@ -238,7 +238,7 @@ export default function DashboardHomePage() {
         </div>
 
         {/* Footer */}
-        <div className={`bg-white py-7 border-t border-claude-border transition-all duration-700 delay-700 transform ${
+        <div className={`bg-white py-7 border-t border-claude-border transition-all duration-500 delay-300 transform ${
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
         }`}>
             <div className="h-8 flex items-center justify-center">
@@ -259,7 +259,7 @@ export default function DashboardHomePage() {
                         rel="noopener noreferrer"
                         className={`flex items-center space-x-2 text-claude-text-secondary transition-colors ${link.color}`}
                     >
-                        <Icon className="w-5 h-5" />
+                        <Icon className="w-5 h-5"/>
                         <span className="text-sm font-medium">{link.name}</span>
                     </a>
                     );

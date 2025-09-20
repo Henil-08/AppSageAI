@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import { Sparkles, ArrowRight, Shield, Zap, Brain } from 'lucide-react';
+import { Sparkles, Zap, Brain, Lock } from 'lucide-react';
 
 export default function HomePage() {
   const { user, loading, signIn } = useAuth();
@@ -33,85 +33,84 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 flex flex-col">
-      {/* Navigation Bar */}
-      <nav className="w-full bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-2">
-              <Sparkles className="w-7 h-7 text-orange-500" />
-              <span className="text-xl font-semibold text-gray-900">AppSageAI</span>
-            </div>
-            
-            {/* Get Started Button */}
-            <button
-              onClick={signIn}
-              className="px-4 py-2 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
-            >
-              <span>Get Started</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </nav>
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-gray-50 to-orange-50">
+      <main className="h-full flex flex-col justify-center items-center px-16 py-[clamp(2rem,5vh,6rem)] space-y-4">
+        <div className="max-w-7xl mx-auto">
 
-      {/* Main Content - Centered */}
-      <main className="flex-1 flex items-center justify-center px-4 py-16">
-        <div className="max-w-7xl mx-auto w-full">
           {/* Hero Section */}
-          <div className="text-center">
-            {/* Badge with animation */}
+          <div className="flex flex-col text-center items-center justify-center">
             <div 
-              className={`inline-flex items-center space-x-2 bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm font-medium mb-6 transition-all duration-700 transform ${
+              className={`shadow-md inline-flex items-center space-x-2 bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-m font-medium mb-[clamp(0.5rem,2vh,2rem)] transition-all duration-700 delay-100 transform ${
                 isVisible ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
               }`}
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-5 h-5" />
               <span>AI-Powered Resume Analysis</span>
             </div>
-
-            {/* Main Headline with animation */}
-            <h1 
-              className={`text-5xl md:text-6xl font-bold text-gray-900 mb-6 transition-all duration-700 delay-100 transform ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-              }`}
-            >
-              Land Your Dream Job with
-              <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent"> Intelligence</span>
-            </h1>
+            
+            <div className="flex items-center space-x-7 mb-[clamp(1rem,3vh,3rem)]">
+              <img
+                src="/appsageai-icon.png"
+                alt="AppSageAI Logo"
+                className={`w-[110px] h-[110px] flex-shrink-0`}
+              />
+              <div className="flex-1 justify-start space-y-3"> 
+                <h1 className="text-7xl font-bold text-gray-900">AppSageAI</h1>
+                <h2 className={`text-xl md:text-xl font-bold text-gray-900 transition-all duration-700 delay-100 transform ${
+                  isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+                }`}
+                >
+                  Land Your Dream Job with...
+                  <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent"> Intelligence</span>
+                </h2>
+              </div> 
+            </div>
 
             {/* Subheadline with animation */}
             <p 
-              className={`text-xl text-gray-600 max-w-3xl mx-auto mb-8 transition-all duration-700 delay-200 transform ${
+              className={`text-xl text-gray-600 max-w-3xl mx-auto mb-[clamp(0.5rem,2.5vh,2rem)] transition-all duration-700 delay-200 transform ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
               }`}
             >
               Upload your resume once, analyze it against any job description, and get
               personalized insights to maximize your chances of success.
             </p>
-
+              
             {/* Powered by Meta Llama Badge */}
+            <div className="relative mb-[clamp(0.5rem,2.5vh,2rem)]">
+            <div className="glowing-pill absolute inset-0 z-0 inline-flex items-center space-x-3 bg-white rounded-full px-5 py-3 shadow-md transition-all duration-700 delay-300 transform">
+                {/* Meta Logo SVG */}
+                <img
+                  src="/meta-logo.png"
+                  alt="Meta Logo"
+                  className={`w-5 h-5 flex-shrink-0`}
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Powered by <span className="font-semibold">Llama 3.3 70B</span>
+                </span>
+            </div>
+
             <div 
-              className={`inline-flex items-center space-x-3 bg-white rounded-full px-4 py-2 shadow-md mb-8 transition-all duration-700 delay-300 transform ${
+              className={`absolute inset-0 z-10 inline-flex items-center space-x-3 bg-white rounded-full px-4 py-2 shadow-md transition-all duration-700 delay-300 transform ${
                 isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
               }`}
             >
               {/* Meta Logo SVG */}
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97-1.97a4.37 4.37 0 00-3.067-1.267 4.37 4.37 0 00-3.067 1.267c-.27.27-.49.576-.656.906a3.578 3.578 0 00-.656-.906 4.37 4.37 0 00-3.067-1.267 4.37 4.37 0 00-3.067 1.267l-1.97 1.97a.75.75 0 000 1.06l7.814 7.814a.75.75 0 001.06 0l7.814-7.814a.75.75 0 000-1.06z" fill="#0866FF"/>
-              </svg>
+              <img
+                src="/meta-logo.png"
+                alt="Meta Logo"
+                className={`w-5 h-5 flex-shrink-0`}
+              />
               <span className="text-sm font-medium text-gray-700">
-                Powered by <span className="font-semibold">Meta Llama 3.3 70B</span>
+                Powered by <span className="font-semibold">Llama 3.3 70B</span>
               </span>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                State-of-the-art
-              </span>
+            </div>
+            
             </div>
 
             {/* Action Buttons with animation */}
             <div 
-              className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-700 delay-400 transform ${
+              className={`flex flex-col sm:flex-row gap-[clamp(0.5rem,1.5vh,1.5rem)] justify-center transition-all duration-700 delay-400 transform ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
               }`}
             >
@@ -131,51 +130,102 @@ export default function HomePage() {
               </button>
               
               {/* Watch Demo Button */}
-              <button className="px-8 py-3 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 hover:shadow-md transition-all duration-200 transform hover:scale-105">
+              <button className="px-8 py-3 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 hover:scale-105 shadow-lg transition-all duration-200 transform hover:scale-105">
                 Watch Demo
               </button>
             </div>
           </div>
 
           {/* Features Grid with staggered animations */}
-          <div className="grid md:grid-cols-3 gap-8 mt-20">
+          <div className="grid md:grid-cols-3 gap-8 mt-[clamp(2rem,5vh,6rem)]">
             {/* Secure & Private Card */}
             <div 
-              className={`bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-500 delay-500 transform hover:-translate-y-1 ${
+              className={`flex flex-col justify-between bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1 ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}
             >
-              <Shield className="w-10 h-10 text-orange-500 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Secure & Private</h3>
-              <p className="text-gray-600">
-                Your data is encrypted and stored securely. We prioritize your privacy.
-              </p>
+              <img
+                src="/shield-privacy.png"
+                alt="Privacy Shield"
+                className={`w-10 h-10 flex-shrink-0 mb-4`}
+              />
+              <div className="flex flex-col gap-2 mt-auto">
+                <h3 className="text-lg font-bold text-green-700">Your Data, Your Control</h3>
+                <p className="text-grey-900">
+                  Your data is stored securely with server-side encryption, so that even I can’t access your information. Your privacy is my top priority.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="inline-flex justify-center gap-1 items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                      <Lock className="w-3 h-3" />
+                      AES-256 
+                  </span>
+                  <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                      Rotating Keys
+                  </span>
+                  <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                      No PII
+                  </span>
+                </div>
+              </div>
             </div>
             
-            {/* Instant Analysis Card */}
+            {/* Speed and Simplicity */}
             <div 
-              className={`bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-500 delay-600 transform hover:-translate-y-1 ${
+              className={`flex flex-col justify-between bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1 ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}
             >
-              <Zap className="w-10 h-10 text-orange-500 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Instant Analysis</h3>
-              <p className="text-gray-600">
-                Get comprehensive feedback in seconds using cutting-edge AI.
-              </p>
+              <img
+                src="/lightning-fast.png"
+                alt="Unlimited Free"
+                className={`w-10 h-10 flex-shrink-0 mb-4`}
+              />
+              <div className="flex flex-col gap-2 mt-auto">
+                <h3 className="text-lg font-bold text-[#FDB441]">Real Results, Real Fast</h3>
+                <p className="text-grey-900">
+                  Fast, lightweight, and easy to use. Six powerful tools in one to focus on your job hunt, not on the clunky software.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
+                      No Trials 
+                  </span>
+                  <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
+                      No Credit Card
+                  </span>
+                  <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
+                      No Paywall
+                  </span>
+                </div>
+              </div>
             </div>
-            
-            {/* AI-Powered Card */}
+            {/* No Hidden Fees */}
             <div 
-              className={`bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-500 delay-700 transform hover:-translate-y-1 ${
+              className={`flex flex-col justify-between bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1 ${
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
               }`}
             >
-              <Brain className="w-10 h-10 text-orange-500 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Advanced AI Models</h3>
-              <p className="text-gray-600">
-                Powered by Meta's Llama 3.3 70B for accurate, actionable insights.
-              </p>
+              <img
+                src="/unlimited-free.png"
+                alt="Unlimited Free"
+                className={`w-10 h-10 flex-shrink-0 mb-4`}
+              />
+              <div className="flex flex-col gap-2 mt-auto">
+                <h3 className="text-lg font-bold text-[#FA4360]">No Hidden Costs, Ever</h3>
+                <p className="text-grey-900">
+                  Full access to all features - Unlimited resume uploads, chats, and job tracking. I built this for the community, Go Wild!
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="inline-flex items-center px-2 py-1 bg-[#FAE6E9] text-[#FA4360] text-xs rounded-full">
+                      No Trials 
+                  </span>
+                  <span className="inline-flex items-center px-2 py-1 bg-[#FAE6E9] text-[#FA4360] text-xs rounded-full">
+                      No Credit Card
+                  </span>
+                  <span className="inline-flex items-center px-2 py-1 bg-[#FAE6E9] text-[#FA4360] text-xs rounded-full">
+                      No Paywall
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -183,17 +233,65 @@ export default function HomePage() {
 
       {/* Add custom animation styles */}
       <style jsx global>{`
-        @keyframes pulse-slow {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.9;
-          }
+        @property --rotate {
+          syntax: "<angle>";
+          initial-value: 0deg;
+          inherits: false;
+        }
+
+        .glowing-pill {
+          position: relative;
         }
         
-        .animate-pulse-slow {
-          animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .glowing-pill::before {
+          content: "";
+          width: calc(100% + 4px);
+          height: calc(100% + 4px);
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          z-index: -1;
+          border-radius: inherit;
+          background-image: linear-gradient(
+            var(--rotate),
+            #5ddcff, #3c67e3 43%, #4e00c2
+          );
+          animation: spin 3s linear infinite;
+        }
+
+        .glowing-pill::after {
+          content: "";
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          top: 0;
+          left: 0;
+          z-index: -1;
+          border-radius: inherit;
+          filter: blur(1rem);
+          background-image: linear-gradient(
+            var(--rotate),
+            #5ddcff, #3c67e3 43%, #4e00c2
+          );
+          animation: spin 3s linear infinite;
+        }
+
+        @keyframes spin {
+          0% {
+            --rotate: 0deg;
+          }
+          25% {
+            --rotate: 90deg;
+          }
+          50% {
+            --rotate: 180deg;
+          }
+          75% {
+            --rotate: 270deg;
+          }
+          100% {
+            --rotate: 360deg;
+          }
         }
       `}</style>
     </div>

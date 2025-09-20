@@ -1,8 +1,9 @@
 'use client';
-import { Trash2 } from 'lucide-react';
+import { MessagesSquare, Trash2, Waypoints } from 'lucide-react';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from "framer-motion";
 import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -16,7 +17,6 @@ import {
   Menu,
   Briefcase,
   Plus,
-  Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -146,16 +146,24 @@ export default function DashboardLayout({
       {/* Fixed Sidebar */}
       <aside
         className={`${sidebarOpen ? 'w-64' : 'w-20'
-          } bg-white border-r border-claude-border transition-all duration-300 flex flex-col h-screen overflow-hidden fixed left-0 top-0 z-40`}
+          } bg-white border-r border-claude-border transition-all duration-500 flex flex-col h-screen overflow-hidden fixed left-0 top-0 z-40`}
       >
         {/* Logo Section */}
-        <div className="h-[65px] flex items-center justify-between px-4 border-b border-claude-border flex-shrink-0">
-          {sidebarOpen && (
-            <div className="flex items-center space-x-2 transition-opacity duration-300">
-              <Sparkles className="w-6 h-6 text-claude-accent-orange" />
-              <span className="font-semibold text-lg">AppSageAI</span>
-            </div>
-          )}
+        <div className="h-[65px] flex items-center justify-between pl-4 pr-4 border-b border-claude-border flex-shrink-0">
+          {/* Logo + Title */}
+          <div
+            className={`flex items-center overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out
+              ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 w-0'}`}
+          >
+            <img
+              src="/appsageai-icon.png"
+              alt="AppSageAI Logo"
+              className={`w-6 h-6 flex-shrink-0`}
+            />
+            <span className="ml-3 font-semibold text-lg">AppSageAI</span>
+          </div>
+
+          {/* Sidebar Toggle Button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="flex items-center justify-center w-12 h-12 rounded-lg hover:bg-claude-background transition-colors"
@@ -167,82 +175,86 @@ export default function DashboardLayout({
             )}
           </button>
         </div>
+        
+        {/* New Chat */}
+        <div className="px-4 mt-4">
+        <Link
+          href="/dashboard/chat/new"
+          className="w-full p-4 flex mb-4 items-center h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-500"
+        >
+          <Plus className="w-5 h-5 flex-shrink-0" />
+          <span
+            className={`overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out
+              ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+          >
+            New Chat
+          </span>
+        </Link>
+        </div>
 
         {/* Navigation */}
-        <nav className="flex-1 h-full p-4 overflow-y-auto">
-          {/* New Chat */}
-          <Link
-            href="/dashboard/chat/new"
-            className="w-full flex mb-4 items-center h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-300"
-          >
-            <Plus className="w-5 h-5 flex-shrink-0" />
-            <span
-              className={`overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out
-                ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+        <nav className="flex-1 h-full pl-4 pr-4 overflow-y-auto">
+          {/* Collapsible Section (Recent Chats + Main Nav Items wrapper) */}
+          <div className="transition-all duration-500 ease-in-out">
+            {/* Collapsible Chats */}
+            <div
+              className={`transition-all duration-500 ease-in-out mb-2 overflow-hidden
+                ${sidebarOpen 
+                  ? (chatsExpanded 
+                    ? 'max-h-[250px] opacity-100' 
+                    : 'max-h-10 opacity-100') 
+                  : 'mb-0 max-h-0 opacity-0 pointer-events-none'}`}
             >
-              New Chat
-            </span>
-          </Link>
-
-          {/* Collapsible Chats */}
-          {sidebarOpen && (
-            <div className={`transition-all duration-300 ease-in-out mb-2 overflow-hidden ${sidebarOpen ? (chatsExpanded ? 'max-h-[400px]' : 'max-h-10') : 'max-h-0'}`}>
               <button
                 onClick={() => setChatsExpanded(!chatsExpanded)}
-                className={`w-full h-10 flex items-center justify-center md:justify-between px-3 rounded-lg ${chatsExpanded ? 'bg-claude-accent-orange-light' : 'bg-claude-light'} transition-colors`}
+                className={`w-full h-10 flex items-center justify-center md:justify-between px-3 rounded-lg
+                  ${chatsExpanded ? 'bg-claude-accent-orange-light' : 'bg-claude-light'} transition-colors duration-500`}
               >
-                {/* Icon + Text */}
                 <div className={`flex items-center ${chatsExpanded ? 'text-claude-accent-orange' : 'text-claude-primary'}`}>
                   <MessageSquare
-                    className={`w-5 h-5 flex-shrink-0 transition-opacity duration-300 ease-in-out
+                    className={`w-5 h-5 flex-shrink-0 transition-opacity duration-500 ease-in-out
                       ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}
                   />
                   <span
-                    className={`overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out
+                    className={`overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out
                       ${sidebarOpen ? 'ml-3 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
                   >
                     Recent Chats
                   </span>
                 </div>
-
-                {/* Chevron */}
                 {sidebarOpen && (
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-300 ${chatsExpanded ? 'rotate-0' : '-rotate-90'}`}
+                    className={`w-4 h-4 transition-transform duration-500 ${chatsExpanded ? 'rotate-0' : '-rotate-90'}`}
                   />
                 )}
               </button>
 
               {/* Expanded Chat List */}
               <div
-                className={`mt-2 space-y-1 max-h-64 overflow-y-auto transition-all duration-300 ease-in-out
-                  ${chatsExpanded && sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                className={`mt-2 space-y-1 overflow-hidden transition-all duration-500 ease-in-out
+                  ${chatsExpanded && sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+                  `}
+                style={{ 
+                  maxHeight: 
+                    chatsExpanded && sidebarOpen 
+                      ? `${Math.min(recentChats.length * 56 + 46, 150)}px` 
+                      : '0px',
+                }}
               >
-                {loadingChats ? (
-                  <div className="px-3 py-2 text-xs text-claude-text-muted">
-                    Loading...
-                  </div>
-                ) : recentChats.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-claude-text-muted">
-                    No chats yet
-                  </div>
-                ) : (
-                  recentChats.map((chat) => (
+                <div className="space-y-1">
+                  {recentChats.map((chat) => (
                     <div
                       key={chat.session_id}
-                      className={`group flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-claude-accent-orange-light transition-colors ${pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''
-                        }`}
+                      className={`
+                        group flex items-center justify-between px-3 py-1.5 rounded-lg
+                        hover:bg-claude-accent-orange-light
+                        transition-all duration-500 ease-in-out overflow-hidden
+                        ${pathname === `/dashboard/chat/${chat.session_id}` ? 'bg-claude-accent-orange-light' : ''}
+                      `}
                     >
-                      <Link
-                        href={`/dashboard/chat/${chat.session_id}`}
-                        className="flex-1 min-w-0"
-                      >
-                        <div className="text-sm text-claude-text-primary truncate">
-                          {chat.job_title || 'Untitled'}
-                        </div>
-                        <div className="text-xs text-claude-text-muted truncate">
-                          {chat.company || 'No company'}
-                        </div>
+                      <Link href={`/dashboard/chat/${chat.session_id}`} className="flex-1 min-w-0">
+                        <div className="text-sm text-claude-text-primary truncate">{chat.job_title || 'Untitled'}</div>
+                        <div className="text-xs text-claude-text-muted truncate">{chat.company || 'No company'}</div>
                       </Link>
                       <button
                         onClick={(e) => {
@@ -250,65 +262,66 @@ export default function DashboardLayout({
                           setDeleteModal({
                             isOpen: true,
                             chatId: chat.session_id,
-                            chatTitle: chat.job_title || 'Untitled'
+                            chatTitle: chat.job_title || 'Untitled',
                           });
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all duration-500"
                       >
                         <Trash2 className="w-3 h-3 text-red-500" />
                       </button>
                     </div>
-                  ))
-                )}
+                  ))}
 
-                {recentChats.length > 0 && (
-                  <Link
-                    href="/dashboard/chat"
-                    className="block px-3 py-2 text-xs text-claude-accent-orange hover:underline"
-                  >
-                    View all chats →
-                  </Link>
-                )}
+                  {/* Empty state */}
+                  {!loadingChats && recentChats.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-claude-text-muted transition-all duration-500 ease-in-out opacity-100">
+                      No chats yet
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Main Nav Items */}
-          <ul className="space-y-2">
-            {[
-              { href: '/dashboard', icon: Sparkles, label: 'Dashboard' },
-              { href: '/dashboard/chat', icon: MessageSquare, label: 'All Chats' },
-              { href: '/dashboard/jobs', icon: Briefcase, label: 'Job Tracker' },
-              { href: '/dashboard/resume', icon: FileText, label: 'Resume' },
-            ].map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center justify-center md:justify-start space-x-3 px-3 py-2 rounded-lg transition-all duration-300 ${pathname === item.href
-                    ? 'bg-claude-accent-orange-light text-claude-accent-orange'
-                    : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'
-                    }`}
-                >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {sidebarOpen && (
-                    <span className="transition-all duration-300">{item.label}</span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+            {/* Main Nav Items (slides up/down smoothly because Recent Chats block shrinks above it) */}
+            <ul className="space-y-2 transition-all duration-500 ease-in-out">
+              {[
+                { href: '/dashboard', icon: Sparkles, label: 'Dashboard' },
+                { href: '/dashboard/chat', icon: MessagesSquare, label: 'All Chats' },
+                { href: '/dashboard/jobs', icon: Waypoints, label: 'Job Tracker' },
+                { href: '/dashboard/resume', icon: FileText, label: 'Resume' },
+              ].map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`flex items-center justify-center md:justify-start px-3 py-2 rounded-lg transition-all duration-500
+                      ${pathname === item.href
+                        ? 'bg-claude-accent-orange-light text-claude-accent-orange'
+                        : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'}`}
+                  >
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    <span
+                      className={`overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out
+                        ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+                    >
+                      {item.label}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </nav>
         
         {/* Meta Llama Card */}
         <div className="px-4">
-          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200 shadow-sm flex items-center transition-all duration-300">
+          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200 shadow-sm flex items-center transition-all duration-500">
             <img
               src="/meta-logo.png"
               alt="Meta Logo"
-              className={`w-5 h-5 flex-shrink-0 ${sidebarOpen ? '' : '-mr-2'}`}
+              className={`w-5 h-5 flex-shrink-0 duration-500 ease-in-out ${sidebarOpen ? 'mr-0 translate-x-0' : '-mr-2 translate-x-0'}`}
             />
             <span
-              className={`overflow-hidden text-sm font-medium text-blue-800 whitespace-nowrap transition-all duration-300 ease-in-out
+              className={`overflow-hidden text-sm font-medium text-blue-800 whitespace-nowrap transition-all duration-500 ease-in-out
                 ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
             >
               Powered by Llama 3.3 
@@ -318,14 +331,14 @@ export default function DashboardLayout({
 
         {/* Privacy First Card */}
         <div className="px-4">
-          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 shadow-sm flex items-center transition-all duration-300">
+          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 shadow-sm flex items-center transition-all duration-500">
             <img
               src="/shield-privacy.png"
               alt="Privacy Shield"
-              className={`w-5 h-5 flex-shrink-0 ${sidebarOpen ? '' : '-mr-2'}`}
+              className={`w-5 h-5 flex-shrink-0 transition-all duration-500 ease-in-out ${sidebarOpen ? 'mr-0 translate-x-0' : '-mr-2 translate-x-0'}`}
             />
             <span
-              className={`overflow-hidden text-sm font-medium text-green-800 whitespace-nowrap transition-all duration-300 ease-in-out
+              className={`overflow-hidden text-sm font-medium text-green-800 whitespace-nowrap transition-all duration-500 ease-in-out
                 ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
             >
               Privacy First Application
@@ -335,8 +348,8 @@ export default function DashboardLayout({
 
         {/* User Section */}
         <div className="p-4 border-t border-claude-border flex-shrink-0">
-          <div className={`flex items-center ${sidebarOpen ? 'space-x-3' : 'justify-center'}`}>
-            <div className="relative">
+          <div className={`flex items-center ${sidebarOpen ? 'space-x-3' : ''}`}>
+            <div className="relative flex-shrink-0">
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
@@ -352,7 +365,7 @@ export default function DashboardLayout({
             </div>
 
             {sidebarOpen && (
-              <div className="flex-1 min-w-0 transition-all duration-300">
+              <div className="flex-1 min-w-0 transition-all duration-500">
                 <p className="text-sm font-medium text-claude-text-primary truncate">
                   {user.displayName || 'User'}
                 </p>
@@ -366,11 +379,11 @@ export default function DashboardLayout({
           {/* Sign out button */}
           <button
             onClick={signOut}
-            className="mt-4 w-full flex items-center h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange hover:bg-claude-accent-orange-hover text-white transition-all duration-300"
+            className="mt-4 w-full flex items-center h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange hover:bg-claude-accent-orange-hover text-white transition-all duration-500"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span
-              className={`overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out
+              className={`overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out
                 ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
             >
               Sign out
@@ -380,7 +393,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content with margin for fixed sidebar */}
-      <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <main className={`transition-all duration-500 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
         <div className="min-h-screen">
           {children}
         </div>

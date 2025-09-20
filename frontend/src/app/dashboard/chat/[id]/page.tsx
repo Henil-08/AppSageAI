@@ -1124,7 +1124,7 @@ export default function ChatPage() {
                   <div
                     className="relative inset-0 px-4 py-2 pointer-events-none whitespace-pre-wrap"
                     style={{
-                      color: "transparent",
+                      color: "orange",
                       fontSize: "inherit",
                       lineHeight: "inherit",
                     }}
