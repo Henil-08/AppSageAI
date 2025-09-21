@@ -7,8 +7,13 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AppSageAI - AI-Powered Resume Analysis',
-  description: 'Land your dream job with intelligent resume analysis and optimization',
+  title: 'AppSageAI',
+  description: 'Land your dream job with intelligent resume analysis, optimization, and job tracking.',
+  icons: {
+    icon: "/appsageai-icon.png", 
+    shortcut: "/appsageai-icon.png",
+    apple: "/appsageai-icon.png", 
+  },
 }
 
 export default function RootLayout({

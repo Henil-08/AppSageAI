@@ -74,7 +74,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       const result = await signInWithGoogle();
-      toast.success(`Welcome, ${result.user.displayName}!`);
       router.push('/dashboard');
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -88,7 +87,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       await signOut();
-      toast.success('Signed out successfully');
       router.push('/');
     } catch (error: any) {
       console.error('Sign out error:', error);

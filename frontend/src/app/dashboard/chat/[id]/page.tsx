@@ -9,13 +9,11 @@ import {
   Send,
   ArrowLeft,
   Briefcase,
-  Sparkles,
   FileText,
   Target,
   TrendingUp,
   PenTool,
   Percent,
-  Shield,
   ThumbsUp,
   ThumbsDown,
   RefreshCw,
@@ -109,10 +107,12 @@ export default function ChatPage() {
   const router = useRouter();
   const { getToken } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isInitialLoad = useRef(true);
   
   const sessionId = params.id as string;
   const isNewChat = sessionId === 'new';
   
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, 'thumbs_up' | 'thumbs_down' | null>>({});
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -130,30 +130,91 @@ export default function ChatPage() {
   const [editedJobDescription, setEditedJobDescription] = useState('');
   const [detectingJob, setDetectingJob] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [actualSessionId, setActualSessionId] = useState<string>(sessionId);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
+  useEffect(() => {
+    if (messages.length > 0) {
+      fetchMessageFeedback();
+    }
+  }, [messages]);
+
+  // Fetch feedback status for all messages
+  const fetchMessageFeedback = async () => {
+    try {
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      if (assistantMessages.length === 0) return;
+      
+      const messageIds = assistantMessages.map(m => m.message_id).join(',');
+      const token = await getToken();
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/analysis/feedback/bulk?message_ids=${messageIds}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMessageFeedback(data.feedback);
+      }
+    } catch (error) {
+      console.error('Error fetching feedback status:', error);
+    }
+  };
+
+  const saveMessageToBackend = async (sessionId: string, message: Omit<Message, 'message_id' | 'timestamp'>) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/${sessionId}/message`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            role: message.role,
+            encrypted_content: message.content, // Backend handles encryption now
+            metadata: message.metadata || {}
+          }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to save message');
+      }
+    } catch (error) {
+      console.error('Error saving message:', error);
+      toast.error('Could not save your message. Please try again.');
+    }
+  };
+
   // Parse message content with bold orange for tags
   const parseMessageWithTags = (text: string) => {
-    const parts = text.split(/(@[\w\s.-]+)/g);
-    
+    if (selectedTags.size === 0) {
+      return <span className="text-claude-text-primary">{text}</span>;
+    }
+
+    // Create a regex from the selected tags to find all matches
+    const tagsRegex = new RegExp(`(${Array.from(selectedTags).join('|')})`, 'g');
+    const parts = text.split(tagsRegex);
+
     return parts.map((part, index) => {
-      if (part.startsWith('@') && selectedTags.has(part)) {
+      if (selectedTags.has(part)) {
         return (
-          <span
-            key={index}
-            style={{ 
-              color: '#EA5A0C',
-              fontWeight: '600'
-            }}
-          >
+          <span key={index} className="font-semibold text-claude-accent-orange">
             {part}
           </span>
         );
       }
-      return part;
+      return <span key={index} className="text-claude-text-primary">{part}</span>;
     });
   };
 
@@ -262,6 +323,8 @@ export default function ChatPage() {
     }
   }, [sessionId]);
 
+  
+
   // Fetch existing chat session
   const fetchChatSession = async () => {
     try {
@@ -281,8 +344,12 @@ export default function ChatPage() {
         setEditedTitle(data.job_title);
         setEditedCompany(data.company);
         setEditedJobDescription(data.job_description);
-        
-        const decryptedMessages = data.messages.map((msg: any) => ({
+
+        const sortedMessages = data.messages.sort((a: Message, b: Message) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+
+        const decryptedMessages = sortedMessages.map((msg: any) => ({
           message_id: msg.message_id,
           role: msg.role,
           content: msg.encrypted_content,
@@ -299,9 +366,21 @@ export default function ChatPage() {
     }
   };
 
+  // Resets the 'initial load' flag whenever you switch to a new chat
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    isInitialLoad.current = true;
+  }, [sessionId]);
+
+  // Scrolls to the bottom, using 'auto' for the initial load and 'smooth' for new messages
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: isInitialLoad.current ? 'auto' : 'smooth',
+      });
+      // After the first render/scroll, set the flag to false
+      isInitialLoad.current = false;
+    }
+  }, [messages, sessionId]); // Reruns when messages or the chat itself changes
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -468,6 +547,12 @@ export default function ChatPage() {
     }
   };
 
+  const handleScroll = () => {
+    if (inputRef.current && backdropRef.current) {
+      backdropRef.current.scrollTop = inputRef.current.scrollTop;
+    }
+  };
+
   // Extract resume from message
   const extractResumeFromMessage = (message: string) => {
     // Only extract if it's a properly selected tag
@@ -488,46 +573,60 @@ export default function ChatPage() {
 
   // Run analysis
   const runAnalysis = async (analysisType: string, customQuery?: string) => {
-    // For quick actions, use the input as job description if it's a new chat
-    let jobDescriptionText = customQuery || inputMessage;
-    
-    // Check if we need to create a chat first
-    if (actualSessionId === 'new') {
-      if (!jobDescriptionText.trim()) {
-        toast.error('Please enter a job description or question first');
-        inputRef.current?.focus();
+    const isQuickAction = analysisType !== 'custom_query';
+    const messageContent = isQuickAction
+      ? QUICK_ACTIONS.find(a => a.type === analysisType)?.label || analysisType
+      : customQuery;
+
+    if (!messageContent || !messageContent.trim()) {
+      toast.error('Please enter a message or select an action.');
+      return;
+    }
+
+    // --- Session Creation ---
+    let currentSessionId = actualSessionId;
+    if (isNewChat) {
+      const jobDescription = customQuery || inputMessage;
+      if (!jobDescription.trim()) {
+        toast.error('Please paste a job description to start a new chat.');
         return;
       }
-      
       try {
-        const newId = await createChatSession(jobDescriptionText);
-        
-        // For quick actions, add a user message showing which action was clicked
-        if (analysisType !== 'custom_query') {
-          const actionLabel = QUICK_ACTIONS.find(a => a.type === analysisType)?.label || analysisType;
-          const userMessage: Message = {
-            message_id: `user_${Date.now()}`,
-            role: 'user',
-            content: actionLabel,
-            timestamp: new Date().toISOString(),
-            metadata: {
-              analysis_type: analysisType
-            }
-          };
-          setMessages(prev => [...prev, userMessage]);
-          setInputMessage(''); // Clear the input
-        }
-        
-        // Continue with analysis using new session
-        await performAnalysis(newId, analysisType, analysisType === 'custom_query' ? jobDescriptionText : undefined);
+        currentSessionId = await createChatSession(jobDescription);
       } catch (error) {
         toast.error('Failed to create chat session');
         return;
       }
-    } else {
-      // Existing chat
-      await performAnalysis(actualSessionId, analysisType, customQuery);
     }
+    
+    // --- User Message Handling ---
+    // 1. Create the user message object
+    const userMessage: Message = {
+      message_id: `user_${Date.now()}`,
+      role: 'user',
+      content: messageContent,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        analysis_type: isQuickAction ? analysisType : undefined,
+        resume_used: extractResumeFromMessage(messageContent)?.filename,
+      },
+    };
+
+    // 2. Optimistically update UI with the user message BEFORE the API call
+    setMessages(prev => [...prev, userMessage]);
+    
+    // 3. Save the user message to the database (fire and forget)
+    saveMessageToBackend(currentSessionId, userMessage);
+
+    // 4. Clear the input for the user
+    if (!isQuickAction) {
+      setInputMessage('');
+      setSelectedTags(new Set());
+    }
+
+    // --- Assistant Message Handling ---
+    // This will now only add the assistant's message, preventing order mix-ups
+    await performAnalysis(currentSessionId, analysisType, customQuery);
   };
 
   // Perform the actual analysis
@@ -565,23 +664,7 @@ export default function ChatPage() {
       if (response.ok) {
         const data = await response.json();
         
-        // Add user message if custom query
-        if (customQuery && analysisType === 'custom_query') {
-          const userMessage: Message = {
-            message_id: `user_${Date.now()}`,
-            role: 'user',
-            content: customQuery,
-            timestamp: new Date().toISOString(),
-            metadata: {
-              resume_used: resumeToUse?.filename
-            }
-          };
-          setMessages(prev => [...prev, userMessage]);
-          setInputMessage('');
-          setSelectedTags(new Set()); // Clear tags after sending
-        }
-        
-        // Add assistant response
+        // Add assistant response to the state
         const newMessage: Message = {
           message_id: data.analysis_id,
           role: 'assistant',
@@ -756,7 +839,9 @@ export default function ChatPage() {
   const submitFeedback = async (messageId: string, feedbackType: 'thumbs_up' | 'thumbs_down') => {
     try {
       const token = await getToken();
-      await fetch(
+      const currentFeedback = messageFeedback[messageId];
+      
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/analysis/feedback/${messageId}`,
         {
           method: 'POST',
@@ -770,9 +855,27 @@ export default function ChatPage() {
         }
       );
       
-      toast.success('Thanks for your feedback!');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update local state
+        setMessageFeedback(prev => ({
+          ...prev,
+          [messageId]: data.feedback_type
+        }));
+        
+        // Show appropriate toast
+        if (data.feedback_type === null) {
+          toast.success('Feedback removed');
+        } else if (currentFeedback && currentFeedback !== data.feedback_type) {
+          toast.success('Feedback updated');
+        } else {
+          toast.success('Thanks for your feedback!');
+        }
+      }
     } catch (error) {
       console.error('Error submitting feedback:', error);
+      toast.error('Failed to submit feedback');
     }
   };
 
@@ -805,6 +908,15 @@ export default function ChatPage() {
     }
   };
 
+  const toTitleCase = (str: string | undefined) => {
+    if (!str) return '';
+    return str
+      .replace('_', ' ')  // 1. Replace all underscores with spaces
+      .split(' ')         // 2. Split the string into an array of words
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // 3. Capitalize each word
+      .join(' ');         // 4. Join them back together
+  };
+
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (showResumeSelector) {
@@ -814,24 +926,28 @@ export default function ChatPage() {
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setSelectedResumeIndex(prev => Math.max(prev - 1, 0));
-      } else if (e.key === 'Enter' && !e.shiftKey) {
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
         if (resumes[selectedResumeIndex]) {
           const resume = resumes[selectedResumeIndex];
           const beforeAt = inputMessage.substring(0, cursorPosition - 1);
           const afterCursor = inputMessage.substring(cursorPosition);
           const tagText = `@${resume.filename.replace('.pdf', '')}`;
-          const newText = `${beforeAt}${tagText} ${afterCursor}`;
+
+          // --- FIX IS HERE: Removed the extra space after ${tagText} ---
+          const newText = `${beforeAt}${tagText}${afterCursor}`;
+
           setInputMessage(newText);
           setSelectedResume(resume);
           setSelectedTags(prev => new Set(prev).add(tagText));
           setShowResumeSelector(false);
-          // Set cursor position after the tag
+
+          // Set cursor position right after the tag
           setTimeout(() => {
             if (inputRef.current) {
-              const newPos = beforeAt.length + tagText.length + 1;
-              inputRef.current.setSelectionRange(newPos, newPos);
+              const newPos = beforeAt.length + tagText.length;
               inputRef.current.focus();
+              inputRef.current.setSelectionRange(newPos, newPos);
             }
           }, 0);
         }
@@ -842,28 +958,38 @@ export default function ChatPage() {
       // Handle backspace on tags
       if (e.key === 'Backspace') {
         const cursorPos = e.currentTarget.selectionStart;
-        
-        // Check if we're right after a tag
+        if (cursorPos === 0) return;
+
+        let tagToDelete: string | null = null;
         for (const tag of selectedTags) {
           const tagEnd = inputMessage.indexOf(tag) + tag.length;
-          if (tagEnd === cursorPos || tagEnd + 1 === cursorPos) {
-            e.preventDefault();
-            const tagStart = inputMessage.indexOf(tag);
-            const beforeTag = inputMessage.substring(0, tagStart);
-            const afterTag = inputMessage.substring(tagEnd);
-            const newText = beforeTag + afterTag;
-            setInputMessage(newText);
-            setSelectedTags(prev => {
-              const newTags = new Set(prev);
-              newTags.delete(tag);
-              return newTags;
-            });
-            e.currentTarget.setSelectionRange(tagStart, tagStart);
-            return;
+          if (tagEnd === cursorPos && inputMessage.substring(tagEnd-1, tagEnd) !== ' ') {
+            tagToDelete = tag;
+            break;
           }
         }
+
+        if (tagToDelete) {
+          e.preventDefault();
+          const tagStart = inputMessage.indexOf(tagToDelete);
+          const newText = inputMessage.substring(0, tagStart) + inputMessage.substring(cursorPos);
+          setInputMessage(newText);
+
+          setSelectedTags(prev => {
+            const newTags = new Set(prev);
+            newTags.delete(tagToDelete!);
+            return newTags;
+          });
+
+          setTimeout(() => {
+            if (inputRef.current) {
+              inputRef.current.focus();
+              inputRef.current.setSelectionRange(tagStart, tagStart);
+            }
+          }, 0);
+        }
       }
-      
+
       // Submit on Cmd/Ctrl + Enter
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -905,7 +1031,11 @@ export default function ChatPage() {
             
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-claude-accent-orange-light rounded-lg flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-claude-accent-orange" />
+                <img
+                  src="/application.png"
+                  alt="Application"
+                  className={`w-5 h-5 flex-shrink-0`}
+                />
               </div>
               <div>
                 <h2 className="font-medium text-claude-text-primary flex items-center">
@@ -945,12 +1075,16 @@ export default function ChatPage() {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto bg-claude-background p-6">
+      <div className="flex-1 overflow-y-auto bg-claude-background px-6 pt-4">
         <div className="max-w-4xl mx-auto">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center max-w-2xl">
-                <Sparkles className="w-12 h-12 text-claude-accent-orange mx-auto mb-4" />
+                <img
+                  src="/appsageai-icon.png"
+                  alt="AppSageAI Logo"
+                  className={`w-12 h-12 mx-auto mb-2 flex-shrink-0`}
+                />
                 <h3 className="text-2xl font-medium text-claude-text-primary mb-2">
                   How can I help you today?
                 </h3>
@@ -987,7 +1121,7 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="flex flex-col gap-2">
               {messages.map((message) => (
                 <div
                   key={message.message_id}
@@ -1003,20 +1137,13 @@ export default function ChatPage() {
                         {renderMessageContent(message.content, message.role === 'user')}
                       </div>
                       
-                      {message.metadata && (message.metadata.analysis_type || message.metadata.resume_used) && (
-                        <div className={`mt-2 pt-2 border-t ${
-                          message.role === 'user' 
-                            ? 'border-white/20' 
-                            : 'border-claude-border'
-                        }`}>
-                          <span className={`text-xs ${
-                            message.role === 'user'
-                              ? 'text-white/80'
-                              : 'text-claude-text-muted'
-                          }`}>
+                      {/* Only show metadata for assistant messages */}
+                      {message.role !== 'user' && message.metadata && (message.metadata.analysis_type || message.metadata.resume_used || message.metadata.tokens_used) && (
+                        <div className="mt-2 pt-2 border-t border-claude-border">
+                          <span className="text-xs text-claude-text-muted">
                             {message.metadata.resume_used && `Using: ${message.metadata.resume_used}`}
                             {message.metadata.analysis_type && message.metadata.resume_used && ' • '}
-                            {message.metadata.analysis_type && message.metadata.analysis_type.replace('_', ' ')}
+                            {toTitleCase(message.metadata.analysis_type)}
                             {message.metadata.tokens_used && ` • ${message.metadata.tokens_used} tokens`}
                           </span>
                         </div>
@@ -1039,14 +1166,28 @@ export default function ChatPage() {
                         <button
                           onClick={() => submitFeedback(message.message_id, 'thumbs_up')}
                           className="p-1 hover:bg-claude-background rounded transition-colors"
+                          title={messageFeedback[message.message_id] === 'thumbs_up' ? 'Remove feedback' : 'Good response'}
                         >
-                          <ThumbsUp className="w-4 h-4 text-claude-text-muted hover:text-green-500" />
+                          <ThumbsUp 
+                            className={`w-4 h-4 transition-colors ${
+                              messageFeedback[message.message_id] === 'thumbs_up'
+                                ? 'text-green-500 fill-green-500'
+                                : 'text-claude-text-muted hover:text-green-500'
+                            }`} 
+                          />
                         </button>
                         <button
                           onClick={() => submitFeedback(message.message_id, 'thumbs_down')}
                           className="p-1 hover:bg-claude-background rounded transition-colors"
+                          title={messageFeedback[message.message_id] === 'thumbs_down' ? 'Remove feedback' : 'Poor response'}
                         >
-                          <ThumbsDown className="w-4 h-4 text-claude-text-muted hover:text-red-500" />
+                          <ThumbsDown 
+                            className={`w-4 h-4 transition-colors ${
+                              messageFeedback[message.message_id] === 'thumbs_down'
+                                ? 'text-red-500 fill-red-500'
+                                : 'text-claude-text-muted hover:text-red-500'
+                            }`} 
+                          />
                         </button>
                       </div>
                     )}
@@ -1075,71 +1216,79 @@ export default function ChatPage() {
 
       {/* Quick Actions Bar */}
       {messages.length > 0 && actualSessionId !== 'new' && (
-        <div className="bg-white border-t border-claude-border px-6 flex items-center justify-center flex-shrink-0" style={{ height: '52px' }}>
-          <div className="max-w-4xl w-full mx-auto">
-            <div className="flex items-center justify-center space-x-2">
-              {QUICK_ACTIONS.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={() => runAnalysis(action.type)}
-                    disabled={analyzing}
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-claude-background hover:bg-claude-accent-orange-light rounded-lg transition-colors whitespace-nowrap group disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Icon className="w-4 h-4 text-claude-text-secondary group-hover:text-claude-accent-orange" />
-                    <span className="text-sm text-claude-text-secondary group-hover:text-claude-accent-orange">
-                      {action.label}
-                    </span>
-                  </button>
-                );
-              })}
+        <div className="mt-2">
+            {/* Warning text is now cleaner and has bottom padding */}
+            <div className="pb-2 text-xs text-claude-text-muted text-center">
+                AppSageAI can make mistakes, so always double-check
             </div>
-          </div>
+
+            {/* Your Quick Actions Bar */}
+            <div className="bg-white border-t border-claude-border px-6 flex items-center justify-center flex-shrink-0" style={{ height: '52px' }}>
+                <div className="max-w-4xl w-full mx-auto">
+                    <div className="flex items-center justify-center space-x-2">
+                        {QUICK_ACTIONS.map((action) => {
+                            const Icon = action.icon;
+                            return (
+                                <button
+                                    key={action.id}
+                                    onClick={() => runAnalysis(action.type)}
+                                    disabled={analyzing}
+                                    className="flex items-center space-x-2 px-3 py-1.5 bg-claude-background hover:bg-claude-accent-orange-light rounded-lg transition-colors whitespace-nowrap group disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Icon className="w-4 h-4 text-claude-text-secondary group-hover:text-claude-accent-orange" />
+                                    <span className="text-sm text-claude-text-secondary group-hover:text-claude-accent-orange">
+                                        {action.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
         </div>
       )}
 
       {/* Input Area */}
-      <div className="bg-white border-t border-claude-border px-6 py-2.5 flex-shrink-0 relative">
+      <div className="bg-white border-t border-claude-border px-6 py-3 flex-shrink-0">
         <div className="mt-2 max-w-4xl mx-auto">
-          <div className="flex items-center space-x-5 relative">
-            {/* Wrapper: min-h = button height, expands upward */}
-            <div className="flex-1 flex-col-reverse">
-              {/* Flex wrapper centers text vertically */}
-              <div className="relative">
+          <div className="flex items-start space-x-5 relative">
+            <div className="flex-1 relative">
+              {/* Grid container to perfectly align the backdrop and textarea */}
+              <div className="grid grid-cols-1 grid-rows-1">
+                {/* Backdrop for syntax highlighting (in the back) */}
+                <div
+                  ref={backdropRef}
+                  className="col-start-1 row-start-1 w-full min-h-[80px] max-h-[200px] px-4 py-3 box-border bg-claude-background rounded-lg whitespace-pre-wrap break-words text-base leading-relaxed pointer-events-none overflow-y-auto"
+                >
+                  {parseMessageWithTags(inputMessage)}
+                  {inputMessage.endsWith('\n') ? '\u00A0' : ''}
+                </div>
+
+                {/* The actual textarea (in the front) */}
                 <textarea
                   ref={inputRef}
                   value={inputMessage}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
+                  onScroll={handleScroll}
                   placeholder={
-                    isNewChat
-                      ? "Paste a job listing or ask about your resume..."
-                      : "Ask a follow-up question..."
+                    "Ask AppSageAI"
                   }
-                  className="w-full h-full min-h-[80px] max-h-[200px] px-4 py-8 box-border bg-claude-background border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange resize-none overflow-y-auto leading-normal"
+                  className="col-start-1 row-start-1 w-full min-h-[80px] max-h-[200px] px-4 py-3 box-border bg-transparent border border-claude-border rounded-lg focus:outline-none focus:ring-2 focus:ring-claude-accent-orange/20 focus:border-claude-accent-orange resize-none overflow-y-auto text-base leading-relaxed"
+                  style={{
+                    color: 'transparent',
+                    caretColor: '#1F1F1F',
+                  }}
+                  spellCheck="false"
                 />
-                {/* Highlighted tags overlay */}
-                {inputMessage && selectedTags.size > 0 && (
-                  <div
-                    className="relative inset-0 px-4 py-2 pointer-events-none whitespace-pre-wrap"
-                    style={{
-                      color: "orange",
-                      fontSize: "inherit",
-                      lineHeight: "inherit",
-                    }}
-                  >
-                    {parseMessageWithTags(inputMessage)}
-                  </div>
-                )}
               </div>
 
               {/* Resume Selector */}
               {showResumeSelector && (
-                <div className="absolute bottom-full mb-2 left-0 bg-white rounded-lg shadow-lg border border-claude-border z-[99999] w-72 max-h-64 overflow-y-auto">
+                <div className="absolute bottom-full mb-2 left-0 bg-white rounded-lg shadow-lg border border-claude-border z-10 w-72 max-h-64 overflow-y-auto">
                   <div className="p-2">
                     <div className="text-xs font-medium text-claude-text-secondary px-2 py-1">
-                      Select Resume (↑↓ to navigate, Enter to select)
+                      Select Resume (↑↓ to navigate, Enter/Tab to select)
                     </div>
                     {resumes.length === 0 ? (
                       <div className="px-2 py-3 text-sm text-claude-text-secondary">
@@ -1153,7 +1302,7 @@ export default function ChatPage() {
                             const beforeAt = inputMessage.substring(0, cursorPosition - 1);
                             const afterCursor = inputMessage.substring(cursorPosition);
                             const tagText = `@${resume.filename.replace('.pdf', '')}`;
-                            const newText = `${beforeAt}${tagText} ${afterCursor}`;
+                            const newText = `${beforeAt}${tagText}${afterCursor}`;
                             setInputMessage(newText);
                             setSelectedResume(resume);
                             setSelectedTags(prev => new Set(prev).add(tagText));
@@ -1194,15 +1343,19 @@ export default function ChatPage() {
             <button
               onClick={sendMessage}
               disabled={!inputMessage.trim() || sending || analyzing}
-              className="w-40 h-20 flex items-center justify-center space-x-2 px-4 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-40 self-end h-20 flex items-center justify-center space-x-2 px-4 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="font-medium leading-none">Send</span>
               <Send className="w-5 h-5" />
             </button>
           </div>
-
-          <div className="mt-2 text-xs text-claude-text-muted text-center">
-            Press @ to select resume | Cmd/Ctrl + Enter to send
+            
+          
+          <div className="flex items-start space-x-5"> 
+            <div className="flex-1 mt-2 text-xs justify-center text-claude-text-muted text-center">
+              Press @ to select resume • Cmd/Ctrl + Enter to send
+            </div>
+            <div className="w-40"></div>
           </div>
         </div>
       </div>

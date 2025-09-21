@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import { Sparkles, Zap, Brain, Lock } from 'lucide-react';
+import { Sparkles, Lock } from 'lucide-react';
 
 export default function HomePage() {
   const { user, loading, signIn } = useAuth();
@@ -78,21 +78,19 @@ export default function HomePage() {
               
             {/* Powered by Meta Llama Badge */}
             <div className="relative mb-[clamp(0.5rem,2.5vh,2rem)]">
-            <div className="glowing-pill absolute inset-0 z-0 inline-flex items-center space-x-3 bg-white rounded-full px-5 py-3 shadow-md transition-all duration-700 delay-300 transform">
+            <div className={`glowing-pill absolute inset-0 z-0 inline-flex items-center space-x-3 bg-white rounded-full px-5 py-3 shadow-md transition-all duration-500 delay-300 transform ${
+                isVisible ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
+              }`}>
                 {/* Meta Logo SVG */}
-                <img
-                  src="/meta-logo.png"
-                  alt="Meta Logo"
-                  className={`w-5 h-5 flex-shrink-0`}
-                />
-                <span className="text-sm font-medium text-gray-700">
+                <Sparkles className="w-5 h-5 flex-shrink-0 text-transparent" />
+                <span className="text-sm font-medium text-transparent">
                   Powered by <span className="font-semibold">Llama 3.3 70B</span>
                 </span>
             </div>
 
             <div 
-              className={`absolute inset-0 z-10 inline-flex items-center space-x-3 bg-white rounded-full px-4 py-2 shadow-md transition-all duration-700 delay-300 transform ${
-                isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+              className={`absolute inset-0 z-10 inline-flex items-center space-x-3 bg-white rounded-full px-4 py-2 shadow-md transition-all duration-500 transform ${
+                isVisible ? 'scale-100 opacity-100' : 'scale-105 opacity-0'
               }`}
             >
               {/* Meta Logo SVG */}
@@ -163,7 +161,7 @@ export default function HomePage() {
                       Rotating Keys
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                      No PII
+                      No PII on Logs
                   </span>
                 </div>
               </div>
@@ -187,13 +185,16 @@ export default function HomePage() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
-                      No Trials 
+                      ATS 
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
-                      No Credit Card
+                      Job Match
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
-                      No Paywall
+                      Cover Letter
+                  </span>
+                  <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
+                      Much More
                   </span>
                 </div>
               </div>

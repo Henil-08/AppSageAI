@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSidebar } from '../../contexts/SidebarContext';
 import Link from 'next/link';
 import { 
   FileText,
@@ -20,7 +20,7 @@ import {
 
 export default function DashboardHomePage() {
   const { user, getToken } = useAuth();
-  const router = useRouter();
+  const { sidebarOpen, setSidebarOpen } = useSidebar();
   const [greeting, setGreeting] = useState('');
   const [timeOfDay, setTimeOfDay] = useState('');
   const [isVisible, setIsVisible] = useState(false);
@@ -111,29 +111,34 @@ export default function DashboardHomePage() {
   const userName = user?.displayName?.split(' ')[0] || 'there';
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-claude-background via-white to-orange-50/30">
+    <div className={`flex flex-col h-screen bg-claude-background`}>
+      <div className={`h-screen flex flex-col ${sidebarOpen ? 'pl-10 pr-10': 'pl-20 pr-20'} duration-500 transition-all ease-in-out`}>
         {/* Main content area */}
-        <div className="flex-1 flex flex-col justify-end p-4">
-            <div className="max-w-7xl mx-auto w-full space-y-4">
+        <div className="flex-1 flex flex-col justify-center px-20 py-4">
+            <div className="max-w-7xl mx-auto">
 
-            {/* Greeting Section */}
-            <div className={`mb-14 text-center transition-all duration-700 transform ${
-                isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
-            }`}>
-                <h1 className="text-6xl md:text-6xl font-bold text-claude-text-primary mb-2">
-                Hi, {userName}!
-                <span className="inline-block ml-2 animate-wave">👋</span>
-                </h1>
-                <p className="text-l md:text-l text-claude-text-secondary">
-                {greeting}! Ready to land your dream job?
-                </p>
+              {/* Greeting Section */}
+              <div className={`text-center transition-all duration-700 transform ${
+                  isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              }`}>
+                  <h1 className="text-6xl md:text-6xl font-bold text-claude-text-primary mb-2">
+                  Hi, {userName}!
+                  <span className="inline-block ml-2 animate-wave">👋</span>
+                  </h1>
+                  <p className="text-l md:text-l text-claude-text-secondary">
+                  {greeting}! Ready to land your dream job?
+                  </p>
+              </div>
             </div>
+        </div>
 
+        <div className={`${sidebarOpen ? 'pr-10 pl-10': 'px-20'} transition-all duration-500 ease-in-out`}>
+          <div className="w-full space-y-2 pl-10 pr-10">
             {/* What is AppSageAI */}
-            <div className={`bg-white rounded-2xl p-6 shadow-md border border-claude-border transition-all duration-700 delay-100 transform ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
-            }`}>
-                <div className="flex items-start justify-center space-x-3">
+            <div className={`bg-white rounded-2xl p-6 shadow-md border border-claude-border transition-all duration-500 ease-in-out delay-100 ${
+                  isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              }`}>
+                <div className="flex items-start justify-center space-x-3 transition-all duration-500 ease-in-out">
                     <div className="p-2 w-12 h-12 bg-claude-accent-orange-light rounded-lg">
                         <img
                             src="/appsageai-icon.png"
@@ -171,10 +176,11 @@ export default function DashboardHomePage() {
             </div>
 
             {/* Privacy Notice */}
-            <div className={`bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200 shadow-md transition-all duration-700 delay-150 transform ${
-                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
-            }`}>
-                <div className="flex items-start space-x-3">
+            <div className={`bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200 shadow-md transition-all duration-500 ease-in-out delay-200 ${
+                  isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              }
+            `}>
+                <div className="flex items-start space-x-3 transition-all duration-500 ease-in-out">
                     <div className="p-2 w-12 h-12 bg-green-100 rounded-lg">
                     <img
                         src="/shield-privacy.png"
@@ -209,82 +215,96 @@ export default function DashboardHomePage() {
             </div>
 
             {/* Quick Stats */}
-            <div className={`ml-20 mr-20 grid grid-cols-3 gap-4 transition-all duration-700 delay-200
-                ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}
-              `}>
+            <div className={` grid grid-cols-3 gap-4 transition-all duration-700 delay-300 ${
+                  isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              }`}>
                 {statCards.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
                     <div 
                     key={index}
-                    className="bg-white rounded-xl p-4 border border-claude-border shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5"
+                    className="bg-white rounded-xl p-4 border border-claude-border shadow-md transition-all transform"
                     >
                     <div className="flex items-center justify-between mb-2">
-                        <Icon className={`w-5 h-5 ${stat.color}`} />
-                        <span className="text-2xl font-bold text-claude-text-primary">
-                        {loading ? (
-                            <span className="inline-block w-8 h-8 border-2 border-claude-accent-orange border-t-transparent rounded-full animate-spin"></span>
-                        ) : (
-                            stat.value
-                        )}
-                        </span>
+                      <Icon className={`w-5 h-5 ${stat.color}`} />
+
+                      {/* This container holds both the loading placeholder and the final number */}
+                      <div className="relative h-8 w-10 flex items-center justify-end">
+                          {/* 1. The background pulse animation (visible only when loading) */}
+                          <div className={`
+                              absolute top-0 right-0 h-full w-full bg-claude-background rounded-md
+                              transition-opacity duration-500 ease-in-out
+                              ${loading ? 'opacity-100' : 'opacity-0'}
+                          `}>
+                          </div>
+
+                          {/* 2. The actual number that fades in when loading is complete */}
+                          <span className={`
+                              text-2xl font-bold text-claude-text-primary
+                              transition-opacity duration-500 ease-in-out
+                              ${loading ? 'opacity-0' : 'opacity-100'}
+                          `}>
+                              {stat.value}
+                          </span>
+                      </div>
                     </div>
                     <p className="text-sm text-claude-text-secondary">{stat.label}</p>
                     </div>
                 );
                 })}
             </div>
-            </div>
-        </div>
+          </div>
+        </div>  
+      </div>
+      
+      {/* Footer */}
+      <div className={`bg-claude-background mt-2 py-7 border-t border-claude-border transition-all duration-500 delay-400 ${
+                isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+            }`}>
+          <div className="h-8 flex items-center justify-center">
+          <div className="max-w-7xl mx-auto text-center">
+              <div className="flex items-center justify-center space-x-2 text-claude-text-secondary mb-4">
+              <span>Made with</span>
+              <Heart className="w-4 h-4 text-red-500 animate-pulse fill-current" />
+              <span>by Henil</span>
+              </div>
+              <div className="flex items-center justify-center space-x-6">
+              {socialLinks.map((link, index) => {
+                  const Icon = link.icon;
+                  return (
+                  <a 
+                      key={index}
+                      href={link.href}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className={`flex items-center space-x-2 text-claude-text-secondary transition-colors ${link.color}`}
+                  >
+                      <Icon className="w-5 h-5"/>
+                      <span className="text-sm font-medium">{link.name}</span>
+                  </a>
+                  );
+              })}
+              </div>
+          </div>
+          </div>
+      </div>
 
-        {/* Footer */}
-        <div className={`bg-white py-7 border-t border-claude-border transition-all duration-500 delay-300 transform ${
-            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
-        }`}>
-            <div className="h-8 flex items-center justify-center">
-            <div className="max-w-7xl mx-auto text-center">
-                <div className="flex items-center justify-center space-x-2 text-claude-text-secondary mb-4">
-                <span>Made with</span>
-                <Heart className="w-4 h-4 text-red-500 animate-pulse fill-current" />
-                <span>by Henil</span>
-                </div>
-                <div className="flex items-center justify-center space-x-6">
-                {socialLinks.map((link, index) => {
-                    const Icon = link.icon;
-                    return (
-                    <a 
-                        key={index}
-                        href={link.href}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className={`flex items-center space-x-2 text-claude-text-secondary transition-colors ${link.color}`}
-                    >
-                        <Icon className="w-5 h-5"/>
-                        <span className="text-sm font-medium">{link.name}</span>
-                    </a>
-                    );
-                })}
-                </div>
-            </div>
-            </div>
-        </div>
-
-        {/* Wave animation */}
-        <style jsx global>{`
-            @keyframes wave {
-            0%, 100% { transform: rotate(0deg); }
-            10%, 30%, 50%, 70% { transform: rotate(-10deg); }
-            20%, 40%, 60% { transform: rotate(10deg); }
-            80% { transform: rotate(8deg); }
-            90% { transform: rotate(-8deg); }
-            }
-            
-            .animate-wave {
-            animation: wave 2s ease-in-out infinite;
-            transform-origin: 70% 70%;
-            display: inline-block;
-            }
-        `}</style>
+      {/* Wave animation */}
+      <style jsx global>{`
+          @keyframes wave {
+          0%, 100% { transform: rotate(0deg); }
+          10%, 30%, 50%, 70% { transform: rotate(-10deg); }
+          20%, 40%, 60% { transform: rotate(10deg); }
+          80% { transform: rotate(8deg); }
+          90% { transform: rotate(-8deg); }
+          }
+          
+          .animate-wave {
+          animation: wave 10s ease-in-out infinite;
+          transform-origin: 70% 70%;
+          display: inline-block;
+          }
+      `}</style>
     </div>
   );
 }

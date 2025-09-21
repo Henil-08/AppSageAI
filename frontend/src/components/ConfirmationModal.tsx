@@ -71,8 +71,13 @@ export default function ConfirmationModal({
             </h3>
             
             {/* Message */}
-            <p className="text-claude-text-secondary text-sm">
+            <p className="text-claude-text-secondary text-sm mb-2">
               {message}
+            </p>
+            
+            {/* Warning */}
+            <p className="text-claude-text-secondary text-sm font-semibold">
+              This action cannot be undone.
             </p>
           </div>
           

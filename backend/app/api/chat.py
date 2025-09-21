@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 from pydantic import BaseModel
 
@@ -53,8 +53,8 @@ async def create_chat_session(
         # Create chat session
         chat_data = {
             "session_id": session_id,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
             "job_description": job_description or "General consultation",
             "job_description_hash": jd_hash,
             "job_title": job_title or "General Consultation",
@@ -242,7 +242,7 @@ async def add_message(
         message_data = {
             "role": message.role,
             "encrypted_content": encryption_service.encrypt_content(message.encrypted_content.encode()),
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "metadata": message.metadata or {}
         }
         
@@ -250,7 +250,7 @@ async def add_message(
         
         # Update chat session
         chat_ref.update({
-            "updated_at": datetime.utcnow(),
+            "updated_at": datetime.now(timezone.utc),
             "message_count": chat_ref.get().to_dict().get("message_count", 0) + 1
         })
         
@@ -299,7 +299,7 @@ async def update_chat_details(
             "job_title": request.job_title,
             "company": request.company,
             "job_description": request.job_description,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc)
         }
         
         chat_ref.update(update_data)
@@ -345,7 +345,7 @@ async def update_tracker_status(
         
         update_data = {
             "tracker_status": tracker_status,
-            "tracker_updated_at": datetime.utcnow()
+            "tracker_updated_at": datetime.now(timezone.utc)
         }
         
         if applied_date:

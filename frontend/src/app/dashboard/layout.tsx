@@ -3,19 +3,17 @@ import { MessagesSquare, Trash2, Waypoints } from 'lucide-react';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from "framer-motion";
 import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
+import { SidebarProvider, useSidebar } from '../../contexts/SidebarContext';
 import {
   Sparkles,
   LogOut,
   User,
   FileText,
   MessageSquare,
-  ChevronLeft,
   ChevronDown,
   Menu,
-  Briefcase,
   Plus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -28,15 +26,12 @@ interface ChatSession {
   updated_at: string;
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardUI({ children }: { children: React.ReactNode }) {
+  const { sidebarOpen, setSidebarOpen } = useSidebar();
   const { user, loading, signOut, getToken } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // const [sidebarOpen, setSidebarOpen] = useState(true);
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [recentChats, setRecentChats] = useState<ChatSession[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
@@ -123,6 +118,7 @@ export default function DashboardLayout({
     };
 
     window.addEventListener('refreshSidebarChats', handleRefresh);
+
     return () => {
       window.removeEventListener('refreshSidebarChats', handleRefresh);
     };
@@ -148,39 +144,45 @@ export default function DashboardLayout({
         className={`${sidebarOpen ? 'w-64' : 'w-20'
           } bg-white border-r border-claude-border transition-all duration-500 flex flex-col h-screen overflow-hidden fixed left-0 top-0 z-40`}
       >
-        {/* Logo Section */}
-        <div className="h-[65px] flex items-center justify-between pl-4 pr-4 border-b border-claude-border flex-shrink-0">
-          {/* Logo + Title */}
-          <div
-            className={`flex items-center overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out
-              ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 w-0'}`}
-          >
-            <img
-              src="/appsageai-icon.png"
-              alt="AppSageAI Logo"
-              className={`w-6 h-6 flex-shrink-0`}
-            />
-            <span className="ml-3 font-semibold text-lg">AppSageAI</span>
-          </div>
-
-          {/* Sidebar Toggle Button */}
+        <div className="flex h-[65px] flex-shrink-0 items-center border-b border-claude-border px-4">
+          {/* Logo Section */}
+          
+          {/* 1. Sidebar Toggle Button (Fixed Size) */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center justify-center w-12 h-12 rounded-lg hover:bg-claude-background transition-colors"
+            className={`flex h-10 w-12 flex-shrink-0 items-center justify-center rounded-lg transition-colors transition-shadow duration-500 ease-in-out
+              ${sidebarOpen ? 'shadow-md bg-claude-accent-orange-light text-claude-accent-orange' : 'bg-claude-light text-claude-text-secondary'}
+      `}
           >
-            {sidebarOpen ? (
-              <ChevronLeft className="w-5 h-5 text-claude-text-secondary" />
-            ) : (
-              <Menu className="w-5 h-5 text-claude-text-secondary" />
-            )}
+            <Menu className="h-5 w-5 " />
           </button>
+
+          {/* 2. Centering Container */}
+          <div className="flex flex-1 items-center justify-center overflow-hidden">
+            {/* 3. Animated Logo + Title Wrapper */}
+            <div
+              className={`flex items-center whitespace-nowrap transition-all duration-500 ease-in-out ${
+                sidebarOpen
+                  ? "translate-x-0 opacity-100"
+                  : "-translate-x-2 opacity-0"
+              }`}
+            >
+              <img
+                src="/appsageai-icon.png"
+                alt="AppSageAI Logo"
+                className="h-6 w-6 flex-shrink-0"
+              />
+              <span className="ml-3 text-lg font-semibold">AppSageAI</span>
+            </div>
+          </div>
+          
         </div>
         
         {/* New Chat */}
         <div className="px-4 mt-4">
         <Link
           href="/dashboard/chat/new"
-          className="w-full p-4 flex mb-4 items-center h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-500"
+          className="w-full p-4 flex mb-4 items-center shadow-lg h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-500"
         >
           <Plus className="w-5 h-5 flex-shrink-0" />
           <span
@@ -198,17 +200,17 @@ export default function DashboardLayout({
           <div className="transition-all duration-500 ease-in-out">
             {/* Collapsible Chats */}
             <div
-              className={`transition-all duration-500 ease-in-out mb-2 overflow-hidden
+              className={`transition-all duration-500 ease-in-out overflow-hidden
                 ${sidebarOpen 
                   ? (chatsExpanded 
-                    ? 'max-h-[250px] opacity-100' 
-                    : 'max-h-10 opacity-100') 
+                    ? 'mb-2 max-h-[250px] opacity-100' 
+                    : 'mb-2 max-h-10 opacity-100') 
                   : 'mb-0 max-h-0 opacity-0 pointer-events-none'}`}
             >
               <button
                 onClick={() => setChatsExpanded(!chatsExpanded)}
                 className={`w-full h-10 flex items-center justify-center md:justify-between px-3 rounded-lg
-                  ${chatsExpanded ? 'bg-claude-accent-orange-light' : 'bg-claude-light'} transition-colors duration-500`}
+                  ${chatsExpanded ? 'shadow-md bg-claude-accent-orange-light' : 'bg-claude-light'} transition-shadow transition-colors duration-500`}
               >
                 <div className={`flex items-center ${chatsExpanded ? 'text-claude-accent-orange' : 'text-claude-primary'}`}>
                   <MessageSquare
@@ -295,7 +297,7 @@ export default function DashboardLayout({
                     href={item.href}
                     className={`flex items-center justify-center md:justify-start px-3 py-2 rounded-lg transition-all duration-500
                       ${pathname === item.href
-                        ? 'bg-claude-accent-orange-light text-claude-accent-orange'
+                        ? 'shadow-lg bg-claude-accent-orange-light text-claude-accent-orange'
                         : 'hover:bg-claude-accent-orange-light text-claude-text-primary hover:text-claude-accent-orange'}`}
                   >
                     <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -313,7 +315,7 @@ export default function DashboardLayout({
         </nav>
         
         {/* Meta Llama Card */}
-        <div className="px-4">
+        {/* <div className="px-4">
           <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200 shadow-sm flex items-center transition-all duration-500">
             <img
               src="/meta-logo.png"
@@ -327,11 +329,11 @@ export default function DashboardLayout({
               Powered by Llama 3.3 
             </span>
           </div>
-        </div>
+        </div> */}
 
         {/* Privacy First Card */}
         <div className="px-4">
-          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 shadow-sm flex items-center transition-all duration-500">
+          <div className="justify-center space-x-2 mb-2 relative bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 shadow-sm flex items-center transition-all duration-500">
             <img
               src="/shield-privacy.png"
               alt="Privacy Shield"
@@ -341,7 +343,7 @@ export default function DashboardLayout({
               className={`overflow-hidden text-sm font-medium text-green-800 whitespace-nowrap transition-all duration-500 ease-in-out
                 ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
             >
-              Privacy First Application
+              Privacy First Architecture
             </span>
           </div>
         </div>
@@ -364,22 +366,20 @@ export default function DashboardLayout({
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
             </div>
 
-            {sidebarOpen && (
-              <div className="flex-1 min-w-0 transition-all duration-500">
-                <p className="text-sm font-medium text-claude-text-primary truncate">
-                  {user.displayName || 'User'}
-                </p>
-                <p className="text-xs text-claude-text-muted truncate">
-                  {user.email}
-                </p>
-              </div>
-            )}
+            <div className={`flex-1 min-w-0 transition-all duration-500 ease-in-out ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+              <p className="text-sm font-medium text-claude-text-primary truncate">
+                {user.displayName || 'User'}
+              </p>
+              <p className="text-xs text-claude-text-muted truncate">
+                {user.email}
+              </p>
+            </div>
           </div>
 
           {/* Sign out button */}
           <button
             onClick={signOut}
-            className="mt-4 w-full flex items-center h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange hover:bg-claude-accent-orange-hover text-white transition-all duration-500"
+            className="mt-4 w-full flex items-center h-10 shadow-lg justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange hover:bg-claude-accent-orange-hover text-white transition-all duration-500"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span
@@ -410,11 +410,19 @@ export default function DashboardLayout({
           }
         }}
         title="Delete Chat"
-        message={`Are you sure you want to delete "${deleteModal.chatTitle}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${deleteModal.chatTitle}"?`}
         confirmText="Delete"
         cancelText="Cancel"
         type="danger"
       />
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider>
+      <DashboardUI>{children}</DashboardUI>
+    </SidebarProvider>
   );
 }
