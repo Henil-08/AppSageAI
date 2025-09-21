@@ -112,8 +112,8 @@ export default function DashboardHomePage() {
   const userName = user?.displayName?.split(' ')[0] || 'there';
 
   return (
-    <div className={`flex flex-col h-screen bg-claude-background ${sidebarOpen ? 'px-0': 'px-10'} duration-500 transition-all ease-in-out`}>
-    <div className={`h-screen flex flex-col ${sidebarOpen ? 'px-10': 'px-20'} duration-500 transition-all ease-in-out`}>
+    <div className={`flex flex-col h-screen bg-claude-background`}>
+      <div className={`h-screen flex flex-col ${sidebarOpen ? 'pl-10 pr-10': 'pl-20 pr-20'} duration-500 transition-all ease-in-out`}>
         {/* Main content area */}
         <div className="flex-1 flex flex-col justify-center px-20 py-4">
             <div className="max-w-7xl mx-auto">
@@ -133,8 +133,8 @@ export default function DashboardHomePage() {
             </div>
         </div>
 
-        <div>
-          <div className="w-full space-y-2 px-20">
+        <div className={`${sidebarOpen ? 'pr-10 pl-10': 'px-20'} transition-all duration-500 ease-in-out`}>
+          <div className="w-full space-y-2 pl-10 pr-10">
             {/* What is AppSageAI */}
             <div className={`bg-white rounded-2xl p-6 shadow-md border border-claude-border transition-all duration-500 ease-in-out delay-100 ${
                   isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
@@ -224,7 +224,7 @@ export default function DashboardHomePage() {
                 return (
                     <div 
                     key={index}
-                    className="bg-white rounded-xl p-4 border border-claude-border shadow-lg transition-all transform"
+                    className="bg-white rounded-xl p-4 border border-claude-border shadow-md transition-all transform"
                     >
                     <div className="flex items-center justify-between mb-2">
                       <Icon className={`w-5 h-5 ${stat.color}`} />
@@ -255,12 +255,8 @@ export default function DashboardHomePage() {
                 })}
             </div>
           </div>
-        </div>
-
-        
-
-        
-    </div>
+        </div>  
+      </div>
       
       {/* Footer */}
       <div className={`bg-claude-background mt-2 py-7 border-t border-claude-border transition-all duration-500 delay-400 ${
