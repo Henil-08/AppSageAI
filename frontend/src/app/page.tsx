@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import { Sparkles, Zap, Brain, Lock } from 'lucide-react';
+import { Sparkles, Lock } from 'lucide-react';
 
 export default function HomePage() {
   const { user, loading, signIn } = useAuth();

@@ -6,15 +6,13 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { 
   Plus,
   MessageSquare,
-  Briefcase,
   Calendar,
   ChevronRight,
   Search,
-  Filter,
   Trash2,
-  Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 interface ChatSession {
   session_id: string;
@@ -33,6 +31,11 @@ export default function ChatsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    chatId: string | null;
+    chatTitle: string;
+  }>({ isOpen: false, chatId: null, chatTitle: '' });
 
   // Fetch chat sessions
   const fetchChats = async () => {
@@ -64,10 +67,7 @@ export default function ChatsPage() {
   }, []);
 
   // Delete chat
-  const deleteChat = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this chat?')) return;
-
+  const deleteChat = async (sessionId: string) => {
     try {
       const token = await getToken();
       const response = await fetch(
@@ -82,7 +82,9 @@ export default function ChatsPage() {
 
       if (response.ok) {
         toast.success('Chat deleted');
-        fetchChats();
+        fetchChats(); // Refresh the list
+      } else {
+        toast.error('Failed to delete chat');
       }
     } catch (error) {
       console.error('Error deleting chat:', error);
@@ -196,7 +198,11 @@ export default function ChatsPage() {
               <div className="flex justify-between mb-4 items-start">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
                   <div className="w-10 h-10 bg-claude-accent-orange-light rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Briefcase className="w-5 h-5 text-claude-accent-orange" />
+                    <img
+                      src="/application.png"
+                      alt="Application"
+                      className={`w-5 h-5 flex-shrink-0`}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-claude-text-primary line-clamp-1">
@@ -209,7 +215,14 @@ export default function ChatsPage() {
                 </div>
                 
                 <button
-                  onClick={(e) => deleteChat(chat.session_id, e)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteModal({
+                      isOpen: true,
+                      chatId: chat.session_id,
+                      chatTitle: chat.job_title || 'Untitled',
+                    });
+                  }}
                   className="w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all flex-shrink-0 ml-1"
                 >
                   <Trash2 className="w-4 h-4 text-red-500" />
@@ -217,7 +230,7 @@ export default function ChatsPage() {
               </div>
 
               <div className="flex-1 mb-4">
-              <p className="text-sm text-claude-text-secondary line-clamp-3 mb-4">
+              <p className="text-sm text-claude-text-secondary line-clamp-3 h-[60px] mb-4">
                 {chat.preview}
               </p>
               </div>
@@ -251,6 +264,23 @@ export default function ChatsPage() {
           }}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, chatId: null, chatTitle: '' })}
+        onConfirm={() => {
+          if (deleteModal.chatId) {
+            deleteChat(deleteModal.chatId);
+            setDeleteModal({ isOpen: false, chatId: null, chatTitle: '' });
+          }
+        }}
+        title="Delete Chat"
+        message={`Are you sure you want to delete "${deleteModal.chatTitle}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 }
@@ -385,5 +415,6 @@ function NewChatModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
         </div>
       </div>
     </div>
+    
   );
 }

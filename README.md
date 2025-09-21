@@ -8,9 +8,7 @@ This application implements client-side encryption to ensure your resume data re
 appsageai/
 ├── backend/          # FastAPI backend with Firebase Auth
 ├── frontend/         # Next.js frontend with E2E encryption  
-├── shared/           # Shared types and crypto utilities
-├── deployment/       # Docker, K8s, Terraform configs
-└── config/          # Application configuration
+└── docs/             # Application READMEs
 ```
 
 ## 🚀 Quick Start

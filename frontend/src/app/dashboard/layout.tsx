@@ -3,7 +3,6 @@ import { MessagesSquare, Trash2, Waypoints } from 'lucide-react';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from "framer-motion";
 import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -15,7 +14,6 @@ import {
   ChevronLeft,
   ChevronDown,
   Menu,
-  Briefcase,
   Plus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -166,12 +164,14 @@ export default function DashboardLayout({
           {/* Sidebar Toggle Button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center justify-center w-12 h-12 rounded-lg hover:bg-claude-background transition-colors"
+            className="flex items-center justify-center w-12 h-12 transition-all duration-500 rounded-lg hover:bg-claude-background transition-colors"
           >
             {sidebarOpen ? (
-              <ChevronLeft className="w-5 h-5 text-claude-text-secondary" />
+              <ChevronLeft className={`w-5 h-5 text-claude-text-secondary transition-opacity duration-500 ease-in-out
+                ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`} />
             ) : (
-              <Menu className="w-5 h-5 text-claude-text-secondary" />
+              <Menu className={`w-5 h-5 text-claude-text-secondary transition-opacity duration-500 ease-in-out
+                ${sidebarOpen ? 'opacity-0' : 'opacity-100'}`} />
             )}
           </button>
         </div>
@@ -198,17 +198,17 @@ export default function DashboardLayout({
           <div className="transition-all duration-500 ease-in-out">
             {/* Collapsible Chats */}
             <div
-              className={`transition-all duration-500 ease-in-out mb-2 overflow-hidden
+              className={`transition-all duration-500 ease-in-out overflow-hidden
                 ${sidebarOpen 
                   ? (chatsExpanded 
-                    ? 'max-h-[250px] opacity-100' 
-                    : 'max-h-10 opacity-100') 
+                    ? 'mb-2 max-h-[250px] opacity-100' 
+                    : 'mb-2 max-h-10 opacity-100') 
                   : 'mb-0 max-h-0 opacity-0 pointer-events-none'}`}
             >
               <button
                 onClick={() => setChatsExpanded(!chatsExpanded)}
                 className={`w-full h-10 flex items-center justify-center md:justify-between px-3 rounded-lg
-                  ${chatsExpanded ? 'bg-claude-accent-orange-light' : 'bg-claude-light'} transition-colors duration-500`}
+                  ${chatsExpanded ? 'bg-claude-accent-orange-light' : 'bg-claude-background'} transition-colors duration-500`}
               >
                 <div className={`flex items-center ${chatsExpanded ? 'text-claude-accent-orange' : 'text-claude-primary'}`}>
                   <MessageSquare
@@ -313,7 +313,7 @@ export default function DashboardLayout({
         </nav>
         
         {/* Meta Llama Card */}
-        <div className="px-4">
+        {/* <div className="px-4">
           <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200 shadow-sm flex items-center transition-all duration-500">
             <img
               src="/meta-logo.png"
@@ -327,11 +327,11 @@ export default function DashboardLayout({
               Powered by Llama 3.3 
             </span>
           </div>
-        </div>
+        </div> */}
 
         {/* Privacy First Card */}
         <div className="px-4">
-          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 shadow-sm flex items-center transition-all duration-500">
+          <div className="justify-center space-x-2 mb-2 relative bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 shadow-sm flex items-center transition-all duration-500">
             <img
               src="/shield-privacy.png"
               alt="Privacy Shield"
@@ -341,7 +341,7 @@ export default function DashboardLayout({
               className={`overflow-hidden text-sm font-medium text-green-800 whitespace-nowrap transition-all duration-500 ease-in-out
                 ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
             >
-              Privacy First Application
+              Privacy First Architecture
             </span>
           </div>
         </div>
@@ -410,7 +410,7 @@ export default function DashboardLayout({
           }
         }}
         title="Delete Chat"
-        message={`Are you sure you want to delete "${deleteModal.chatTitle}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${deleteModal.chatTitle}"?`}
         confirmText="Delete"
         cancelText="Cancel"
         type="danger"
