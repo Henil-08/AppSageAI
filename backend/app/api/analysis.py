@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel
 
 from app.auth.firebase import get_current_user_uid, get_firestore_client
@@ -115,7 +115,7 @@ async def analyze_chat(
             "message_id": analysis_id,
             "role": "assistant",
             "encrypted_content": encryption_service.encrypt_content(result.encode()),
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "metadata": {
                 "analysis_type": request.analysis_type,
                 "tokens_used": metadata.get("tokens_used", 0),
@@ -129,7 +129,7 @@ async def analyze_chat(
         
         # Update chat metadata
         chat_ref.update({
-            "updated_at": datetime.utcnow(),
+            "updated_at": datetime.now(timezone.utc),
             "message_count": chat_data.get("message_count", 0) + 1,
             "metadata.last_analysis_type": request.analysis_type,
             "metadata.total_tokens_used": chat_data.get("metadata", {}).get("total_tokens_used", 0) + metadata.get("tokens_used", 0)
@@ -140,7 +140,7 @@ async def analyze_chat(
             user_id_hash=encryption_service.hash_identifier(user_uid),
             action="analysis_performed",
             analysis_type=analysis_type,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             response_time_ms=metadata.get("response_time_ms", 0),
             tokens_used=metadata.get("tokens_used", 0),
             model_used=metadata.get("model", settings.model_name),
@@ -155,7 +155,7 @@ async def analyze_chat(
             "analysis_id": analysis_id,
             "encrypted_response": result,  # In production, this should be encrypted
             "metadata": metadata,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
     except HTTPException:
@@ -168,7 +168,7 @@ async def analyze_chat(
             user_id_hash=encryption_service.hash_identifier(user_uid),
             action="analysis_failed",
             analysis_type=AnalysisType(request.analysis_type) if request.analysis_type else None,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             response_time_ms=0,
             tokens_used=0,
             model_used=settings.model_name,
@@ -263,36 +263,106 @@ async def get_quick_actions(
         ]
     }
 
-@router.post("/feedback/{analysis_id}")
+@router.post("/feedback/{message_id}")
 async def submit_feedback(
-    analysis_id: str,
+    message_id: str,
     request: FeedbackRequest,
     user_uid: str = Depends(get_current_user_uid)
-) -> Dict[str, str]:
+) -> Dict[str, Any]:
     """
-    Submit feedback for an analysis.
+    Submit or toggle feedback for a message.
+    If feedback exists and same type, remove it (toggle off).
+    If feedback exists and different type, update it.
+    If no feedback exists, create it.
     """
     try:
         db = get_firestore_client()
         
-        # Store feedback
-        feedback_data = {
-            "analysis_id": analysis_id,
-            "user_id_hash": encryption_service.hash_identifier(user_uid),
-            "feedback_type": request.feedback_type,
-            "comment": request.comment,
-            "timestamp": datetime.utcnow()
-        }
+        # Create a unique feedback document ID based on user and message
+        feedback_doc_id = f"{user_uid}_{message_id}"
+        feedback_ref = db.collection("feedback").document(feedback_doc_id)
         
-        db.collection("feedback").add(feedback_data)
+        existing_feedback = feedback_ref.get()
         
-        logger.info(f"Feedback submitted for analysis {analysis_id[:8]}...")
-        
-        return {"message": "Thank you for your feedback!"}
+        if existing_feedback.exists:
+            existing_data = existing_feedback.to_dict()
+            
+            # If same feedback type, remove it (toggle off)
+            if existing_data.get("feedback_type") == request.feedback_type:
+                feedback_ref.delete()
+                logger.info(f"Feedback removed for message {message_id[:8]}...")
+                return {
+                    "message": "Feedback removed",
+                    "feedback_type": None
+                }
+            else:
+                # Different feedback type, update it
+                feedback_ref.update({
+                    "feedback_type": request.feedback_type,
+                    "updated_at": datetime.now(timezone.utc)
+                })
+                logger.info(f"Feedback updated for message {message_id[:8]}...")
+                return {
+                    "message": "Feedback updated",
+                    "feedback_type": request.feedback_type
+                }
+        else:
+            # No existing feedback, create new
+            feedback_data = {
+                "message_id": message_id,
+                "user_id_hash": encryption_service.hash_identifier(user_uid),
+                "feedback_type": request.feedback_type,
+                "comment": request.comment,
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }
+            
+            feedback_ref.set(feedback_data)
+            logger.info(f"Feedback created for message {message_id[:8]}...")
+            
+            return {
+                "message": "Thank you for your feedback!",
+                "feedback_type": request.feedback_type
+            }
         
     except Exception as e:
         logger.error(f"Error submitting feedback: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to submit feedback"
+        )
+
+@router.get("/feedback/bulk")
+async def get_bulk_feedback(
+    message_ids: str,  # Comma-separated list of message IDs
+    user_uid: str = Depends(get_current_user_uid)
+) -> Dict[str, Any]:
+    """
+    Get feedback status for multiple messages.
+    """
+    try:
+        db = get_firestore_client()
+        
+        # Parse message IDs
+        ids = [id.strip() for id in message_ids.split(",") if id.strip()]
+        
+        feedback_status = {}
+        
+        for message_id in ids:
+            feedback_doc_id = f"{user_uid}_{message_id}"
+            feedback_ref = db.collection("feedback").document(feedback_doc_id)
+            feedback_doc = feedback_ref.get()
+            
+            if feedback_doc.exists:
+                feedback_status[message_id] = feedback_doc.to_dict().get("feedback_type")
+            else:
+                feedback_status[message_id] = None
+        
+        return {"feedback": feedback_status}
+        
+    except Exception as e:
+        logger.error(f"Error fetching feedback: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch feedback"
         )

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 from pydantic import BaseModel
 
@@ -91,7 +91,7 @@ async def upload_resume(
             filename=file.filename,
             encrypted_content=encryption_service.encrypt_content(contents),
             file_hash=file_hash,
-            uploaded_at=datetime.utcnow(),
+            uploaded_at=datetime.now(timezone.utc),
             target_role=target_role
         )
         
@@ -102,7 +102,7 @@ async def upload_resume(
         # Mark as active resume
         db.collection("users").document(user_uid).update({
             "active_resume_id": resume_id,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc)
         })
         
         logger.info(f"Resume uploaded for user {user_uid[:8]}... - ID: {resume_id}")
@@ -193,7 +193,7 @@ async def set_active_resume(
         # Update active resume
         db.collection("users").document(user_uid).update({
             "active_resume_id": resume_id,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc)
         })
         
         logger.info(f"Active resume set for user {user_uid[:8]}... - ID: {resume_id}")
@@ -281,7 +281,7 @@ async def delete_resume(
                 # Clear active resume
                 db.collection("users").document(user_uid).update({
                     "active_resume_id": None,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(timezone.utc)
                 })
         
         logger.info(f"Resume deleted for user {user_uid[:8]}... - ID: {resume_id}")
@@ -323,7 +323,7 @@ async def update_target_role(
         # Update target role
         resume_ref.update({
             "target_role": request.target_role,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc)
         })
         
         logger.info(f"Target role updated for resume {resume_id[:8]}...")

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 
 from app.auth.firebase import get_current_user_uid, get_firestore_client
 from app.db.models import UserStatsResponse, UsageLimits
@@ -49,7 +49,7 @@ async def get_user_stats(
             total_resumes=resume_count,
             total_chats=chat_count,
             plan=user_data.get("plan", "free"),
-            joined_date=user_data.get("created_at", datetime.utcnow())
+            joined_date=user_data.get("created_at", datetime.now(timezone.utc))
         )
         
     except HTTPException:
@@ -81,7 +81,7 @@ async def get_usage_limits(
         usage = user_data.get("usage", {})
         
         # Count today's analyses
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         analytics = db.collection("analytics")\
             .where("user_id_hash", "==", encryption_service.hash_identifier(user_uid))\
             .where("timestamp", ">=", today_start)\

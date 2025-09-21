@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSidebar } from '../../contexts/SidebarContext';
 import Link from 'next/link';
 import { 
   FileText,
@@ -20,7 +21,7 @@ import {
 
 export default function DashboardHomePage() {
   const { user, getToken } = useAuth();
-  const router = useRouter();
+  const { sidebarOpen, setSidebarOpen } = useSidebar();
   const [greeting, setGreeting] = useState('');
   const [timeOfDay, setTimeOfDay] = useState('');
   const [isVisible, setIsVisible] = useState(false);
@@ -111,10 +112,11 @@ export default function DashboardHomePage() {
   const userName = user?.displayName?.split(' ')[0] || 'there';
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-claude-background via-white to-orange-50/30">
+    <div className={`flex flex-col h-screen bg-claude-background ${sidebarOpen ? 'px-0': 'px-10'} duration-500 transition-all ease-in-out`}>
+    <div className={`h-screen flex flex-col ${sidebarOpen ? 'px-10': 'px-20'} duration-500 transition-all ease-in-out`}>
         {/* Main content area */}
         <div className="flex-1 flex flex-col justify-center px-20 py-4">
-            <div className="max-w-7xl mx-auto w-full">
+            <div className="max-w-7xl mx-auto">
 
               {/* Greeting Section */}
               <div className={`text-center transition-all duration-700 transform ${
@@ -131,10 +133,12 @@ export default function DashboardHomePage() {
             </div>
         </div>
 
-        <div className="px-20">
-          <div className="max-w-7xl mx-auto w-full space-y-4">
+        <div>
+          <div className="w-full space-y-2 px-20">
             {/* What is AppSageAI */}
-            <div className={`bg-white rounded-2xl p-6 shadow-md border border-claude-border transition-all duration-500 ease-in-out `}>
+            <div className={`bg-white rounded-2xl p-6 shadow-md border border-claude-border transition-all duration-500 ease-in-out delay-100 ${
+                  isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              }`}>
                 <div className="flex items-start justify-center space-x-3 transition-all duration-500 ease-in-out">
                     <div className="p-2 w-12 h-12 bg-claude-accent-orange-light rounded-lg">
                         <img
@@ -173,7 +177,9 @@ export default function DashboardHomePage() {
             </div>
 
             {/* Privacy Notice */}
-            <div className={`bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200 shadow-md transition-all duration-500 ease-in-out 
+            <div className={`bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200 shadow-md transition-all duration-500 ease-in-out delay-200 ${
+                  isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              }
             `}>
                 <div className="flex items-start space-x-3 transition-all duration-500 ease-in-out">
                     <div className="p-2 w-12 h-12 bg-green-100 rounded-lg">
@@ -210,13 +216,15 @@ export default function DashboardHomePage() {
             </div>
 
             {/* Quick Stats */}
-            <div className={` grid grid-cols-3 gap-4 transition-all duration-700`}>
+            <div className={` grid grid-cols-3 gap-4 transition-all duration-700 delay-300 ${
+                  isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              }`}>
                 {statCards.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
                     <div 
                     key={index}
-                    className="bg-white rounded-xl p-4 border border-claude-border shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5"
+                    className="bg-white rounded-xl p-4 border border-claude-border shadow-lg transition-all transform"
                     >
                     <div className="flex items-center justify-between mb-2">
                       <Icon className={`w-5 h-5 ${stat.color}`} />
@@ -246,55 +254,62 @@ export default function DashboardHomePage() {
                 );
                 })}
             </div>
-            </div>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className={`bg-white mt-4 py-7 border-t border-claude-border transition-all duration-500`}>
-            <div className="h-8 flex items-center justify-center">
-            <div className="max-w-7xl mx-auto text-center">
-                <div className="flex items-center justify-center space-x-2 text-claude-text-secondary mb-4">
-                <span>Made with</span>
-                <Heart className="w-4 h-4 text-red-500 animate-pulse fill-current" />
-                <span>by Henil</span>
-                </div>
-                <div className="flex items-center justify-center space-x-6">
-                {socialLinks.map((link, index) => {
-                    const Icon = link.icon;
-                    return (
-                    <a 
-                        key={index}
-                        href={link.href}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className={`flex items-center space-x-2 text-claude-text-secondary transition-colors ${link.color}`}
-                    >
-                        <Icon className="w-5 h-5"/>
-                        <span className="text-sm font-medium">{link.name}</span>
-                    </a>
-                    );
-                })}
-                </div>
-            </div>
-            </div>
-        </div>
+        
 
-        {/* Wave animation */}
-        <style jsx global>{`
-            @keyframes wave {
-            0%, 100% { transform: rotate(0deg); }
-            10%, 30%, 50%, 70% { transform: rotate(-10deg); }
-            20%, 40%, 60% { transform: rotate(10deg); }
-            80% { transform: rotate(8deg); }
-            90% { transform: rotate(-8deg); }
-            }
-            
-            .animate-wave {
-            animation: wave 10s ease-in-out infinite;
-            transform-origin: 70% 70%;
-            display: inline-block;
-            }
-        `}</style>
+        
+    </div>
+      
+      {/* Footer */}
+      <div className={`bg-claude-background mt-2 py-7 border-t border-claude-border transition-all duration-500 delay-400 ${
+                isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+            }`}>
+          <div className="h-8 flex items-center justify-center">
+          <div className="max-w-7xl mx-auto text-center">
+              <div className="flex items-center justify-center space-x-2 text-claude-text-secondary mb-4">
+              <span>Made with</span>
+              <Heart className="w-4 h-4 text-red-500 animate-pulse fill-current" />
+              <span>by Henil</span>
+              </div>
+              <div className="flex items-center justify-center space-x-6">
+              {socialLinks.map((link, index) => {
+                  const Icon = link.icon;
+                  return (
+                  <a 
+                      key={index}
+                      href={link.href}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className={`flex items-center space-x-2 text-claude-text-secondary transition-colors ${link.color}`}
+                  >
+                      <Icon className="w-5 h-5"/>
+                      <span className="text-sm font-medium">{link.name}</span>
+                  </a>
+                  );
+              })}
+              </div>
+          </div>
+          </div>
+      </div>
+
+      {/* Wave animation */}
+      <style jsx global>{`
+          @keyframes wave {
+          0%, 100% { transform: rotate(0deg); }
+          10%, 30%, 50%, 70% { transform: rotate(-10deg); }
+          20%, 40%, 60% { transform: rotate(10deg); }
+          80% { transform: rotate(8deg); }
+          90% { transform: rotate(-8deg); }
+          }
+          
+          .animate-wave {
+          animation: wave 10s ease-in-out infinite;
+          transform-origin: 70% 70%;
+          display: inline-block;
+          }
+      `}</style>
     </div>
   );
 }

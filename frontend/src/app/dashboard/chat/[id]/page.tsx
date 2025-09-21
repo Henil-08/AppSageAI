@@ -112,6 +112,7 @@ export default function ChatPage() {
   const sessionId = params.id as string;
   const isNewChat = sessionId === 'new';
   
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, 'thumbs_up' | 'thumbs_down' | null>>({});
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -134,6 +135,66 @@ export default function ChatPage() {
   const [actualSessionId, setActualSessionId] = useState<string>(sessionId);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      fetchMessageFeedback();
+    }
+  }, [messages]);
+
+  // Fetch feedback status for all messages
+  const fetchMessageFeedback = async () => {
+    try {
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      if (assistantMessages.length === 0) return;
+      
+      const messageIds = assistantMessages.map(m => m.message_id).join(',');
+      const token = await getToken();
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/analysis/feedback/bulk?message_ids=${messageIds}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMessageFeedback(data.feedback);
+      }
+    } catch (error) {
+      console.error('Error fetching feedback status:', error);
+    }
+  };
+
+  const saveMessageToBackend = async (sessionId: string, message: Omit<Message, 'message_id' | 'timestamp'>) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/${sessionId}/message`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            role: message.role,
+            encrypted_content: message.content, // Backend handles encryption now
+            metadata: message.metadata || {}
+          }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to save message');
+      }
+    } catch (error) {
+      console.error('Error saving message:', error);
+      toast.error('Could not save your message. Please try again.');
+    }
+  };
 
   // Parse message content with bold orange for tags
   const parseMessageWithTags = (text: string) => {
@@ -262,6 +323,8 @@ export default function ChatPage() {
     }
   }, [sessionId]);
 
+  
+
   // Fetch existing chat session
   const fetchChatSession = async () => {
     try {
@@ -281,8 +344,12 @@ export default function ChatPage() {
         setEditedTitle(data.job_title);
         setEditedCompany(data.company);
         setEditedJobDescription(data.job_description);
-        
-        const decryptedMessages = data.messages.map((msg: any) => ({
+
+        const sortedMessages = data.messages.sort((a: Message, b: Message) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+
+        const decryptedMessages = sortedMessages.map((msg: any) => ({
           message_id: msg.message_id,
           role: msg.role,
           content: msg.encrypted_content,
@@ -506,46 +573,60 @@ export default function ChatPage() {
 
   // Run analysis
   const runAnalysis = async (analysisType: string, customQuery?: string) => {
-    // For quick actions, use the input as job description if it's a new chat
-    let jobDescriptionText = customQuery || inputMessage;
-    
-    // Check if we need to create a chat first
-    if (actualSessionId === 'new') {
-      if (!jobDescriptionText.trim()) {
-        toast.error('Please enter a job description or question first');
-        inputRef.current?.focus();
+    const isQuickAction = analysisType !== 'custom_query';
+    const messageContent = isQuickAction
+      ? QUICK_ACTIONS.find(a => a.type === analysisType)?.label || analysisType
+      : customQuery;
+
+    if (!messageContent || !messageContent.trim()) {
+      toast.error('Please enter a message or select an action.');
+      return;
+    }
+
+    // --- Session Creation ---
+    let currentSessionId = actualSessionId;
+    if (isNewChat) {
+      const jobDescription = customQuery || inputMessage;
+      if (!jobDescription.trim()) {
+        toast.error('Please paste a job description to start a new chat.');
         return;
       }
-      
       try {
-        const newId = await createChatSession(jobDescriptionText);
-        
-        // For quick actions, add a user message showing which action was clicked
-        if (analysisType !== 'custom_query') {
-          const actionLabel = QUICK_ACTIONS.find(a => a.type === analysisType)?.label || analysisType;
-          const userMessage: Message = {
-            message_id: `user_${Date.now()}`,
-            role: 'user',
-            content: actionLabel,
-            timestamp: new Date().toISOString(),
-            metadata: {
-              analysis_type: analysisType
-            }
-          };
-          setMessages(prev => [...prev, userMessage]);
-          setInputMessage(''); // Clear the input
-        }
-        
-        // Continue with analysis using new session
-        await performAnalysis(newId, analysisType, analysisType === 'custom_query' ? jobDescriptionText : undefined);
+        currentSessionId = await createChatSession(jobDescription);
       } catch (error) {
         toast.error('Failed to create chat session');
         return;
       }
-    } else {
-      // Existing chat
-      await performAnalysis(actualSessionId, analysisType, customQuery);
     }
+    
+    // --- User Message Handling ---
+    // 1. Create the user message object
+    const userMessage: Message = {
+      message_id: `user_${Date.now()}`,
+      role: 'user',
+      content: messageContent,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        analysis_type: isQuickAction ? analysisType : undefined,
+        resume_used: extractResumeFromMessage(messageContent)?.filename,
+      },
+    };
+
+    // 2. Optimistically update UI with the user message BEFORE the API call
+    setMessages(prev => [...prev, userMessage]);
+    
+    // 3. Save the user message to the database (fire and forget)
+    saveMessageToBackend(currentSessionId, userMessage);
+
+    // 4. Clear the input for the user
+    if (!isQuickAction) {
+      setInputMessage('');
+      setSelectedTags(new Set());
+    }
+
+    // --- Assistant Message Handling ---
+    // This will now only add the assistant's message, preventing order mix-ups
+    await performAnalysis(currentSessionId, analysisType, customQuery);
   };
 
   // Perform the actual analysis
@@ -583,23 +664,7 @@ export default function ChatPage() {
       if (response.ok) {
         const data = await response.json();
         
-        // Add user message if custom query
-        if (customQuery && analysisType === 'custom_query') {
-          const userMessage: Message = {
-            message_id: `user_${Date.now()}`,
-            role: 'user',
-            content: customQuery,
-            timestamp: new Date().toISOString(),
-            metadata: {
-              resume_used: resumeToUse?.filename
-            }
-          };
-          setMessages(prev => [...prev, userMessage]);
-          setInputMessage('');
-          setSelectedTags(new Set()); // Clear tags after sending
-        }
-        
-        // Add assistant response
+        // Add assistant response to the state
         const newMessage: Message = {
           message_id: data.analysis_id,
           role: 'assistant',
@@ -774,7 +839,9 @@ export default function ChatPage() {
   const submitFeedback = async (messageId: string, feedbackType: 'thumbs_up' | 'thumbs_down') => {
     try {
       const token = await getToken();
-      await fetch(
+      const currentFeedback = messageFeedback[messageId];
+      
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/analysis/feedback/${messageId}`,
         {
           method: 'POST',
@@ -788,9 +855,27 @@ export default function ChatPage() {
         }
       );
       
-      toast.success('Thanks for your feedback!');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update local state
+        setMessageFeedback(prev => ({
+          ...prev,
+          [messageId]: data.feedback_type
+        }));
+        
+        // Show appropriate toast
+        if (data.feedback_type === null) {
+          toast.success('Feedback removed');
+        } else if (currentFeedback && currentFeedback !== data.feedback_type) {
+          toast.success('Feedback updated');
+        } else {
+          toast.success('Thanks for your feedback!');
+        }
+      }
     } catch (error) {
       console.error('Error submitting feedback:', error);
+      toast.error('Failed to submit feedback');
     }
   };
 
@@ -823,6 +908,15 @@ export default function ChatPage() {
     }
   };
 
+  const toTitleCase = (str: string | undefined) => {
+    if (!str) return '';
+    return str
+      .replace('_', ' ')  // 1. Replace all underscores with spaces
+      .split(' ')         // 2. Split the string into an array of words
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // 3. Capitalize each word
+      .join(' ');         // 4. Join them back together
+  };
+
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (showResumeSelector) {
@@ -838,7 +932,7 @@ export default function ChatPage() {
           const resume = resumes[selectedResumeIndex];
           const beforeAt = inputMessage.substring(0, cursorPosition - 1);
           const afterCursor = inputMessage.substring(cursorPosition);
-          const tagText = `@${resume.filename.replace('.pdf', '')} `;
+          const tagText = `@${resume.filename.replace('.pdf', '')}`;
 
           // --- FIX IS HERE: Removed the extra space after ${tagText} ---
           const newText = `${beforeAt}${tagText}${afterCursor}`;
@@ -1043,20 +1137,13 @@ export default function ChatPage() {
                         {renderMessageContent(message.content, message.role === 'user')}
                       </div>
                       
-                      {message.metadata && (message.metadata.analysis_type || message.metadata.resume_used) && (
-                        <div className={`mt-2 pt-2 border-t ${
-                          message.role === 'user' 
-                            ? 'border-white/20' 
-                            : 'border-claude-border'
-                        }`}>
-                          <span className={`text-xs ${
-                            message.role === 'user'
-                              ? 'text-white/80'
-                              : 'text-claude-text-muted'
-                          }`}>
+                      {/* Only show metadata for assistant messages */}
+                      {message.role !== 'user' && message.metadata && (message.metadata.analysis_type || message.metadata.resume_used || message.metadata.tokens_used) && (
+                        <div className="mt-2 pt-2 border-t border-claude-border">
+                          <span className="text-xs text-claude-text-muted">
                             {message.metadata.resume_used && `Using: ${message.metadata.resume_used}`}
                             {message.metadata.analysis_type && message.metadata.resume_used && ' • '}
-                            {message.metadata.analysis_type && message.metadata.analysis_type.replace('_', ' ')}
+                            {toTitleCase(message.metadata.analysis_type)}
                             {message.metadata.tokens_used && ` • ${message.metadata.tokens_used} tokens`}
                           </span>
                         </div>
@@ -1079,14 +1166,28 @@ export default function ChatPage() {
                         <button
                           onClick={() => submitFeedback(message.message_id, 'thumbs_up')}
                           className="p-1 hover:bg-claude-background rounded transition-colors"
+                          title={messageFeedback[message.message_id] === 'thumbs_up' ? 'Remove feedback' : 'Good response'}
                         >
-                          <ThumbsUp className="w-4 h-4 text-claude-text-muted hover:text-green-500" />
+                          <ThumbsUp 
+                            className={`w-4 h-4 transition-colors ${
+                              messageFeedback[message.message_id] === 'thumbs_up'
+                                ? 'text-green-500 fill-green-500'
+                                : 'text-claude-text-muted hover:text-green-500'
+                            }`} 
+                          />
                         </button>
                         <button
                           onClick={() => submitFeedback(message.message_id, 'thumbs_down')}
                           className="p-1 hover:bg-claude-background rounded transition-colors"
+                          title={messageFeedback[message.message_id] === 'thumbs_down' ? 'Remove feedback' : 'Poor response'}
                         >
-                          <ThumbsDown className="w-4 h-4 text-claude-text-muted hover:text-red-500" />
+                          <ThumbsDown 
+                            className={`w-4 h-4 transition-colors ${
+                              messageFeedback[message.message_id] === 'thumbs_down'
+                                ? 'text-red-500 fill-red-500'
+                                : 'text-claude-text-muted hover:text-red-500'
+                            }`} 
+                          />
                         </button>
                       </div>
                     )}
