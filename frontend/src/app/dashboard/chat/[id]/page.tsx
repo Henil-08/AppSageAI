@@ -142,6 +142,17 @@ export default function ChatPage() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      // Force update of any pathname-dependent UI
+      // This will update the sidebar highlighting
+      window.dispatchEvent(new CustomEvent('refreshSidebarChats'));
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Fetch feedback status for all messages
   const fetchMessageFeedback = async () => {
     try {
@@ -305,25 +316,36 @@ export default function ChatPage() {
     );
   };
 
-  // Initialize for new chat
   useEffect(() => {
-    if (isNewChat) {
-      setChatSession({
-        session_id: 'new',
-        job_title: 'New Chat',
-        company: '',
-        job_description: '',
-        messages: []
-      });
-      setLoading(false);
-      setActualSessionId('new');
-    } else {
-      setActualSessionId(sessionId);
-      fetchChatSession();
-    }
-  }, [sessionId]);
+    const initializeChat = async () => {
+      setLoading(true);
+      if (isNewChat) {
+        // Reset all state for a new chat session
+        setChatSession({
+          session_id: 'new',
+          job_title: 'New Chat',
+          company: '',
+          job_description: '',
+          messages: []
+        });
+        setMessages([]);
+        setInputMessage('');
+        setEditedTitle('');
+        setEditedCompany('');
+        setEditedJobDescription('');
+        setSelectedTags(new Set());
+        setActualSessionId('new');
+        setMessageFeedback({});
+        setLoading(false);
+      } else {
+        // Fetch existing chat data
+        setActualSessionId(sessionId);
+        await fetchChatSession();
+      }
+    };
 
-  
+    initializeChat();
+  }, [sessionId]);  
 
   // Fetch existing chat session
   const fetchChatSession = async () => {
@@ -489,9 +511,6 @@ export default function ChatPage() {
       setEditedCompany(detectedCompany);
       setEditedJobDescription(fullJobDescription);
       
-      // Update URL
-      window.history.replaceState({}, '', `/dashboard/chat/${newSessionId}`);
-
       // Try to detect job details if text is long enough
       if (text.length > 100) {
         try {
@@ -593,6 +612,7 @@ export default function ChatPage() {
       }
       try {
         currentSessionId = await createChatSession(jobDescription);
+        await new Promise(resolve => setTimeout(resolve, 50));
       } catch (error) {
         toast.error('Failed to create chat session');
         return;
@@ -619,10 +639,8 @@ export default function ChatPage() {
     saveMessageToBackend(currentSessionId, userMessage);
 
     // 4. Clear the input for the user
-    if (!isQuickAction) {
-      setInputMessage('');
-      setSelectedTags(new Set());
-    }
+    setInputMessage('');
+    setSelectedTags(new Set());
 
     // --- Assistant Message Handling ---
     // This will now only add the assistant's message, preventing order mix-ups
@@ -633,6 +651,8 @@ export default function ChatPage() {
   const performAnalysis = async (sessionId: string, analysisType: string, customQuery?: string) => {
     setAnalyzing(true);
     setCurrentAnalysisType(analysisType);
+
+    const wasNewChat = actualSessionId === 'new';
 
     try {
       // Determine which resume to use
@@ -677,7 +697,12 @@ export default function ChatPage() {
         };
         
         setMessages(prev => [...prev, newMessage]);
-        toast.success('Analysis complete!');
+
+        if (wasNewChat && sessionId !== 'new') {
+          // Use replaceState to update URL without triggering a re-render
+          window.history.replaceState({}, '', `/dashboard/chat/${sessionId}`);
+        }
+
       } else {
         const error = await response.json();
         console.error('Analysis error:', error);
@@ -1001,6 +1026,13 @@ export default function ChatPage() {
   const adjustTextareaHeight = () => {
     const textarea = inputRef.current;
     if (textarea) {
+      // If the textarea is empty, remove the inline height to reset to CSS default
+      if (!textarea.value) {
+        textarea.style.height = '';
+        return;
+      }
+
+      // Otherwise, calculate the new height
       textarea.style.height = 'auto';
       const scrollHeight = textarea.scrollHeight;
       const maxHeight = 200;
@@ -1169,7 +1201,7 @@ export default function ChatPage() {
                           title={messageFeedback[message.message_id] === 'thumbs_up' ? 'Remove feedback' : 'Good response'}
                         >
                           <ThumbsUp 
-                            className={`w-4 h-4 transition-colors ${
+                            className={`w-4 h-4 transition-colors duration-500 ease-in-out ${
                               messageFeedback[message.message_id] === 'thumbs_up'
                                 ? 'text-green-500 fill-green-500'
                                 : 'text-claude-text-muted hover:text-green-500'
@@ -1182,7 +1214,7 @@ export default function ChatPage() {
                           title={messageFeedback[message.message_id] === 'thumbs_down' ? 'Remove feedback' : 'Poor response'}
                         >
                           <ThumbsDown 
-                            className={`w-4 h-4 transition-colors ${
+                            className={`w-4 h-4 transition-colors duration-500 ease-in-out ${
                               messageFeedback[message.message_id] === 'thumbs_down'
                                 ? 'text-red-500 fill-red-500'
                                 : 'text-claude-text-muted hover:text-red-500'

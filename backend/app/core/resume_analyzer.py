@@ -12,7 +12,9 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from google.oauth2 import service_account
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.documents import Document
 
 from app.config.settings import settings
@@ -27,12 +29,17 @@ class ResumeAnalyzer:
         """Initialize the analyzer with models and embeddings."""
         logger.info("Initializing Resume Analyzer...")
         
+        credentials = service_account.Credentials.from_service_account_file(
+            settings.firebase_service_account_path,
+            scopes=['https://www.googleapis.com/auth/generative-language']
+        )
+
         # Initialize LLM
-        self.llm = ChatGroq(
-            model_name=settings.model_name,
+        self.llm = ChatGoogleGenerativeAI(
+            model=settings.model_name,
             temperature=0.7,
-            max_tokens=4000,
-            groq_api_key=settings.get_groq_api_key()
+            credentials=credentials,
+            project=settings.gcp_project_id 
         )
         
         # Initialize embeddings

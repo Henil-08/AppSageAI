@@ -9,7 +9,7 @@ from app.auth.firebase import (
     get_or_create_user_doc,
     verify_firebase_token
 )
-from app.db.models import UserProfile, TokenResponse
+from app.db.models import UserProfile
 from app.logger import logger
 
 router = APIRouter()

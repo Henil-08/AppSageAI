@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
+import Link from 'next/link';
 import { 
   Plus,
   MessageSquare,
@@ -124,13 +125,13 @@ export default function ChatsPage() {
           </p>
         </div>
         
-        <button
-          onClick={() => setShowNewChatModal(true)}
+        <Link
+          href='/dashboard/chat/new/'
           className="flex items-center space-x-2 px-4 py-2 bg-claude-accent-orange text-white font-medium rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>New Chat</span>
-        </button>
+        </Link>
       </div>
 
       {/* Privacy Info */}
