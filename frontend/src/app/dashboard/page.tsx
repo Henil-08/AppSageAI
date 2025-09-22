@@ -104,7 +104,7 @@ export default function DashboardHomePage() {
   ];
 
   const socialLinks = [
-    { name: 'Website', icon: LucideAppWindow, href: 'https://henilgajjar.framer.ai/', color: 'hover:text-claude-accent-orange' },
+    { name: 'Portfolio', icon: LucideAppWindow, href: 'https://henilgajjar.framer.ai/', color: 'hover:text-claude-accent-orange' },
     { name: 'GitHub', icon: Github, href: 'https://github.com/Henil-08', color: 'hover:text-gray-800' },
     { name: 'LinkedIn', icon: Linkedin, href: 'https://linkedin.com/in/henilgajjar', color: 'hover:text-blue-600' },
     { name: 'Google Scholar', icon: GraduationCap, href: 'https://scholar.google.com/citations?user=RdSGiWYAAAAJ&hl=en', color: 'hover:text-green-600' }
