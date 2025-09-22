@@ -85,7 +85,14 @@ async def analyze_chat(
             )
         
         resume_data = resume_doc.to_dict()
-        resume_content = bytes.fromhex(resume_data.get("encrypted_content", ""))
+        
+        encrypted_content = resume_data.get("encrypted_content", "")
+        # Try to decode from hex first (old format), if that fails, decrypt directly
+        try:
+            resume_content = bytes.fromhex(encrypted_content)
+        except ValueError:
+            # It's already encrypted bytes or base64, decrypt it
+            resume_content = encryption_service.decrypt_content(encrypted_content)
         
         # Get job description from chat
         job_description = chat_data.get("job_description", "")

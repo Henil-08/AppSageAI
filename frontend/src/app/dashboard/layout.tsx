@@ -179,7 +179,7 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
         </div>
         
         {/* New Chat */}
-        <div className="px-4 mt-4">
+        <div className="px-4 mt-3">
           <button
             onClick={() => {
               // window.location.reload();
@@ -189,7 +189,7 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
                 router.push('/dashboard/chat/new', { scroll: false });
               }, 10); // 10–50ms feels smooth
             }}
-            className="w-full p-4 flex mb-4 items-center shadow-lg h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-500"
+            className="w-full p-4 flex mb-2 items-center shadow-lg h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-500"
           >
             <Plus className="w-5 h-5 flex-shrink-0" />
             <span
@@ -323,14 +323,14 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
         
         {/* Meta Llama Card */}
         <div className="px-4">
-          <div className="mt-4 shadow-md justify-center space-x-2 mb-2 relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200 flex items-center transition-all duration-500">
+          <div className="mt-4 h-9 shadow-md justify-center space-x-2 mb-2 relative bg-gradient-to-r from-blue-50 to-violet-50 rounded-lg p-3 border border-violet-200 flex items-center transition-all duration-500">
             <img
               src="/gemini.png"
               alt="Gemini Logo"
               className={`w-5 h-5 flex-shrink-0 duration-500 ease-in-out ${sidebarOpen ? 'mr-0 translate-x-0' : '-mr-2 translate-x-0'}`}
             />
             <span
-              className={`overflow-hidden text-sm font-medium text-blue-800 whitespace-nowrap transition-all duration-500 ease-in-out
+              className={`overflow-hidden text-sm font-medium text-violet-900 whitespace-nowrap transition-all duration-500 ease-in-out
                 ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
             >
               Powered by Gemini 

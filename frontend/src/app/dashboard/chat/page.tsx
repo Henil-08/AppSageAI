@@ -84,6 +84,8 @@ export default function ChatsPage() {
       if (response.ok) {
         toast.success('Chat deleted');
         fetchChats(); // Refresh the list
+        // Dispatch event to refresh sidebar
+        window.dispatchEvent(new CustomEvent('refreshSidebarChats'));
       } else {
         toast.error('Failed to delete chat');
       }
