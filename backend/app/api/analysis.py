@@ -101,9 +101,14 @@ async def analyze_chat_stream(
         # Get job description from chat
         job_description = chat_data.get("job_description", "")
         
-        # Avoid parsing Initial Job Description.
-        if str(job_description).lower() == "general consultation" or str(job_description).lower() == "career development":
-            job_description = ""
+        if (request.custom_query) and (len(request.custom_query) > 100):
+            # We could optionally check if it's actually a job description here
+            # For now, use it as additional context
+            job_description = request.custom_query if not job_description else f"{job_description}\n\nAdditional Context:\n{request.custom_query}"
+        
+        # Avoid parsing Initial Job Description placeholders
+        if str(job_description).lower() in ["general consultation", "career development", ""]:
+            job_description = request.custom_query or ""
 
         # Get appropriate prompt
         analysis_type = AnalysisType(request.analysis_type)
@@ -287,10 +292,15 @@ async def analyze_chat(
         
         # Get job description from chat
         job_description = chat_data.get("job_description", "")
+
+        if (request.custom_query) and (len(request.custom_query) > 100):
+            # We could optionally check if it's actually a job description here
+            # For now, use it as additional context
+            job_description = request.custom_query if not job_description else f"{job_description}\n\nAdditional Context:\n{request.custom_query}"
         
-        # Avoid parsing Initial Job Description.
-        if str(job_description).lower() == "general consultation" or str(job_description).lower() == "career development":
-            job_description = ""
+        # Avoid parsing Initial Job Description placeholders
+        if str(job_description).lower() in ["general consultation", "career development", ""]:
+            job_description = request.custom_query or ""
 
         # Get appropriate prompt
         analysis_type = AnalysisType(request.analysis_type)

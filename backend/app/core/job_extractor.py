@@ -37,7 +37,7 @@ async def extract_job_details(text: str) -> Dict[str, Any]:
         # Create extraction prompt
         prompt = ChatPromptTemplate.from_template("""
         Analyze the following text and extract job details if it appears to be a job listing.
-        If it's not a job listing, still try to understand the context.
+        If it's not a job listing, still try to understand the context. 
         
         Text:
         {text}
@@ -51,6 +51,8 @@ async def extract_job_details(text: str) -> Dict[str, Any]:
         - job_type: string (full-time, part-time, contract, etc.)
         - job_description: string (cleaned/formatted job description)
         
+        DON'T SUMMARIZE job_description or LEAVE OUT ANY WORD. Keep all the contents from the job description. Just format it cleanly. Not a single word should be missed!
+                                                  
         If any field cannot be determined, use an empty string.
         
         RESPOND ONLY WITH VALID JSON. No additional text.
