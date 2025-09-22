@@ -329,7 +329,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Info Section */}
-      <div className="bg-claude-accent-orange-light shadow-soft rounded-xl p-6 mb-4">
+      <div className="bg-yellow-50 border border-yellow-200 shadow-soft rounded-xl p-4 mb-4">
         <div className="flex items-start space-x-3">
           <img
               src="/tip.png"

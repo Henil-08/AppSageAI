@@ -6,7 +6,8 @@ FastAPI-based backend service for AppSageAI resume analysis platform.
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+uv init
+uv install -r pyproject.toml
 
 # Setup environment
 cp .env.example .env
@@ -140,6 +141,7 @@ tail -f logs/running_logs.log
 - File upload: supports up to 10MB
 
 ## 🔗 Related
+
 - [Frontend README](../frontend/README.md)
 - [Main README](../README.md)
 - [Contributing](../docs/CONTRIBUTING.md)

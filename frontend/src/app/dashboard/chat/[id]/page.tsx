@@ -153,143 +153,6 @@ export default function ChatPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Function for streaming analysis
-  const performStreamingAnalysis = async (
-    sessionId: string, 
-    analysisType: string, 
-    customQuery?: string
-  ) => {
-    setAnalyzing(true);
-    setCurrentAnalysisType(analysisType);
-    
-    const wasNewChat = actualSessionId === 'new';
-    let fullResponse = '';
-    let streamingMessageId = `streaming_${Date.now()}`;
-    let messageAddedToUI = false;
-
-    try {
-      let resumeToUse = selectedResume;
-      if (customQuery) {
-        const mentionedResume = extractResumeFromMessage(customQuery);
-        if (mentionedResume) {
-          resumeToUse = mentionedResume;
-        }
-      }
-      
-      const token = await getToken();
-      
-      // Start streaming
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/analysis/analyze-stream/${sessionId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            analysis_type: analysisType,
-            resume_id: resumeToUse?.resume_id,
-            custom_query: customQuery
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to start streaming');
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.type === 'token') {
-                // Add the message to the UI only on the first token
-                if (!messageAddedToUI) {
-                  const streamingMessage: Message = {
-                    message_id: streamingMessageId,
-                    role: 'assistant',
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    metadata: {
-                      analysis_type: analysisType,
-                      resume_used: resumeToUse?.filename
-                    }
-                  };
-                  setMessages(prev => [...prev, streamingMessage]);
-                  messageAddedToUI = true;
-                }
-                
-                fullResponse += data.content;
-                
-                // Update the streaming message
-                setMessages(prev => 
-                  prev.map(msg => 
-                    msg.message_id === streamingMessageId
-                      ? { ...msg, content: fullResponse }
-                      : msg
-                  )
-                );
-              } else if (data.type === 'metadata') {
-                // Update message with metadata
-                setMessages(prev => 
-                  prev.map(msg => 
-                    msg.message_id === streamingMessageId
-                      ? { ...msg, metadata: { ...msg.metadata, ...data.metadata } }
-                      : msg
-                  )
-                );
-              } else if (data.type === 'done') {
-                // Replace streaming message with final message
-                setMessages(prev => 
-                  prev.map(msg => 
-                    msg.message_id === streamingMessageId
-                      ? { ...msg, message_id: data.analysis_id }
-                      : msg
-                  )
-                );
-                
-                if (wasNewChat && sessionId !== 'new') {
-                  window.history.replaceState({}, '', `/dashboard/chat/${sessionId}`);
-                }
-              } else if (data.type === 'error') {
-                throw new Error(data.error);
-              }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
-            }
-          }
-        }
-      }
-
-    } catch (error) {
-      console.error('Error in streaming analysis:', error);
-      toast.error('Failed to complete analysis');
-      
-      // Remove the streaming message on error
-      setMessages(prev => prev.filter(msg => msg.message_id !== streamingMessageId));
-    } finally {
-      setAnalyzing(false);
-      setCurrentAnalysisType(null);
-    }
-  };
-
   // Fetch feedback status for all messages
   const fetchMessageFeedback = async () => {
     try {
@@ -609,7 +472,7 @@ export default function ChatPage() {
       const token = await getToken();
       let detectedTitle = "General Consultation";
       let detectedCompany = "Career Development";
-      const fullJobDescription = "";
+      let fullJobDescription = ``;
       
       // Create the chat first with default values
       const createResponse = await fetch(
@@ -666,18 +529,22 @@ export default function ChatPage() {
 
           if (extractResponse.ok) {
             const details = await extractResponse.json();
-            if (details.is_job_listing && (details.job_title || details.company)) {
+
+            if (details.is_job_listing && (details.job_title || details.company || details.job_description)) {
               detectedTitle = details.job_title || detectedTitle;
               detectedCompany = details.company || detectedCompany;
+              fullJobDescription = details.job_description || text;
               
               // Update local state with detected values
               setChatSession(prev => prev ? {
                 ...prev,
                 job_title: detectedTitle,
                 company: detectedCompany,
+                job_description: fullJobDescription
               } : null);
               setEditedTitle(detectedTitle);
               setEditedCompany(detectedCompany);
+              setEditedJobDescription(fullJobDescription);
               
               // Update backend with detected title and company
               await updateChatInBackend(newSessionId, detectedTitle, detectedCompany, fullJobDescription);
@@ -691,9 +558,7 @@ export default function ChatPage() {
       }
       
       // Refresh sidebar
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('refreshSidebarChats'));
-      }, 1000);
+      window.dispatchEvent(new CustomEvent('refreshSidebarChats'));
       
       return newSessionId;
     } catch (error) {
@@ -730,9 +595,12 @@ export default function ChatPage() {
   // Run analysis
   const runAnalysis = async (analysisType: string, customQuery?: string) => {
     const isQuickAction = analysisType !== 'custom_query';
+
     const messageContent = isQuickAction
       ? QUICK_ACTIONS.find(a => a.type === analysisType)?.label || analysisType
       : customQuery;
+
+    const analysisQuery = customQuery || inputMessage || '';
 
     if (!messageContent || !messageContent.trim()) {
       toast.error('Please enter a message or select an action.');
@@ -742,8 +610,8 @@ export default function ChatPage() {
     // --- Session Creation ---
     let currentSessionId = actualSessionId;
     if (isNewChat) {
-      const jobDescription = customQuery || inputMessage;
-      if (!jobDescription.trim()) {
+      const jobDescription = analysisQuery || '';
+      if (!jobDescription.trim() && !isQuickAction) {
         toast.error('Please paste a job description to start a new chat.');
         return;
       }
@@ -782,7 +650,144 @@ export default function ChatPage() {
     // --- Assistant Message Handling ---
     // This will now only add the assistant's message, preventing order mix-ups
     // await performAnalysis(currentSessionId, analysisType, customQuery);
-    await performStreamingAnalysis(currentSessionId, analysisType, customQuery);
+    await performStreamingAnalysis(currentSessionId, analysisType, analysisQuery);
+  };
+
+  // Function for streaming analysis
+  const performStreamingAnalysis = async (
+    sessionId: string, 
+    analysisType: string, 
+    customQuery?: string
+  ) => {
+    setAnalyzing(true);
+    setCurrentAnalysisType(analysisType);
+    
+    const wasNewChat = actualSessionId === 'new';
+    let fullResponse = '';
+    let streamingMessageId = `streaming_${Date.now()}`;
+    let messageAddedToUI = false;
+
+    try {
+      let resumeToUse = selectedResume;
+      if (customQuery) {
+        const mentionedResume = extractResumeFromMessage(customQuery);
+        if (mentionedResume) {
+          resumeToUse = mentionedResume;
+        }
+      }
+      
+      const token = await getToken();
+      
+      // Start streaming
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/analysis/analyze-stream/${sessionId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            analysis_type: analysisType,
+            resume_id: resumeToUse?.resume_id,
+            custom_query: customQuery
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to start streaming');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'token') {
+                // Add the message to the UI only on the first token
+                if (!messageAddedToUI) {
+                  const streamingMessage: Message = {
+                    message_id: streamingMessageId,
+                    role: 'assistant',
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    metadata: {
+                      analysis_type: analysisType,
+                      resume_used: resumeToUse?.filename
+                    }
+                  };
+                  setMessages(prev => [...prev, streamingMessage]);
+                  messageAddedToUI = true;
+                }
+                
+                fullResponse += data.content;
+                
+                // Update the streaming message
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.message_id === streamingMessageId
+                      ? { ...msg, content: fullResponse }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'metadata') {
+                // Update message with metadata
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.message_id === streamingMessageId
+                      ? { ...msg, metadata: { ...msg.metadata, ...data.metadata } }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'done') {
+                // Replace streaming message with final message
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.message_id === streamingMessageId
+                      ? { ...msg, message_id: data.analysis_id }
+                      : msg
+                  )
+                );
+                
+                if (wasNewChat && sessionId !== 'new') {
+                  window.history.replaceState({}, '', `/dashboard/chat/${sessionId}`);
+                }
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Error in streaming analysis:', error);
+      toast.error('Failed to complete analysis');
+      
+      // Remove the streaming message on error
+      setMessages(prev => prev.filter(msg => msg.message_id !== streamingMessageId));
+    } finally {
+      setAnalyzing(false);
+      setCurrentAnalysisType(null);
+    }
   };
 
   // Perform the actual analysis (invoke method)
