@@ -6,8 +6,6 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy-frontend.yml'
-    paths-ignore:
-      - 'frontend/README.md'
   workflow_dispatch:
 
 env:
