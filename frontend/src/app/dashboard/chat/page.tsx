@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
+import Link from 'next/link';
 import { 
   Plus,
   MessageSquare,
@@ -83,6 +84,8 @@ export default function ChatsPage() {
       if (response.ok) {
         toast.success('Chat deleted');
         fetchChats(); // Refresh the list
+        // Dispatch event to refresh sidebar
+        window.dispatchEvent(new CustomEvent('refreshSidebarChats'));
       } else {
         toast.error('Failed to delete chat');
       }
@@ -114,7 +117,7 @@ export default function ChatsPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex justify-between items-start mb-5">
+      <div className="flex justify-between items-start mb-4">
         <div>
           <h1 className="text-3xl font-semibold text-claude-text-primary mb-2">
             Your Chats
@@ -124,13 +127,13 @@ export default function ChatsPage() {
           </p>
         </div>
         
-        <button
-          onClick={() => setShowNewChatModal(true)}
+        <Link
+          href='/dashboard/chat/new/'
           className="flex items-center space-x-2 px-4 py-2 bg-claude-accent-orange text-white font-medium rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>New Chat</span>
-        </button>
+        </Link>
       </div>
 
       {/* Privacy Info */}

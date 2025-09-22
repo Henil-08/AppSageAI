@@ -3,6 +3,8 @@
 from typing import Dict, Any
 import json
 from langchain_groq import ChatGroq
+from google.oauth2 import service_account
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.config.settings import settings
@@ -20,12 +22,16 @@ async def extract_job_details(text: str) -> Dict[str, Any]:
         Dictionary with extracted job details
     """
     try:
+        credentials = service_account.Credentials.from_service_account_file(
+            settings.firebase_service_account_path,
+            scopes=['https://www.googleapis.com/auth/generative-language']
+        )
+
         # Initialize LLM
-        llm = ChatGroq(
-            model_name=settings.model_name,
-            temperature=0.1,  # Low temperature for factual extraction
-            max_tokens=500,
-            groq_api_key=settings.get_groq_api_key()
+        llm = ChatGoogleGenerativeAI(
+            model=settings.job_model_name,
+            temperature=0.1,
+            credentials=credentials,
         )
         
         # Create extraction prompt
@@ -54,7 +60,7 @@ async def extract_job_details(text: str) -> Dict[str, Any]:
         chain = prompt | llm
         
         # Execute extraction
-        response = await chain.ainvoke({"text": text[:3000]})  # Limit text length
+        response = await chain.ainvoke({"text": text})
         
         # Parse response
         try:

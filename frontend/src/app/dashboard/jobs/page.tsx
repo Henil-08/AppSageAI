@@ -182,7 +182,7 @@ export default function JobTrackerPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-3xl font-semibold text-claude-text-primary mb-3">
+        <h1 className="text-3xl font-semibold text-claude-text-primary mb-2">
           Application Tracker
         </h1>
         <p className="text-claude-text-secondary">
@@ -205,7 +205,7 @@ export default function JobTrackerPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-claude-border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-claude-text-secondary text-sm">Total Chats</span>

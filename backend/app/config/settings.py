@@ -60,21 +60,12 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     groq_api_key: Optional[str] = Field(default=None, description="Groq API key")
-    model_name: str = Field(default="llama-3.3-70b-versatile", description="LLM model name")
+    model_name: str = Field(default="gemini-2.5-flash", description="LLM model name")
+    job_model_name: str = Field(default="gemini-2.5-flash-lite", description="LLM model name for Job Extraction")
     embedding_model: str = Field(default="all-MiniLM-L6-v2", description="Embedding model")
     
     # HuggingFace
     hf_token: Optional[str] = Field(default=None, description="HuggingFace token")
-    
-    # Langfuse Configuration
-    langfuse_enabled: bool = Field(default=False, description="Enable Langfuse monitoring")
-    langfuse_public_key: Optional[str] = Field(default=None, description="Langfuse public key")
-    langfuse_secret_key: Optional[str] = Field(default=None, description="Langfuse secret key")
-    langfuse_host: str = Field(
-        default="https://cloud.langfuse.com",
-        description="Langfuse host"
-    )
-    trace_pii: bool = Field(default=False, description="Trace PII data in Langfuse")
     
     # Security
     jwt_secret_key: str = Field(

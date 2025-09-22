@@ -40,6 +40,7 @@ dependencies = [
     "pytest>=8.4.2",
     "pytest-env>=1.1.5",
     "pytest-cov>=7.0.0",
+    "langchain-google-genai>=2.1.12",
 ]
 
 [project.optional-dependencies]

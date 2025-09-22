@@ -306,7 +306,7 @@ export default function DashboardPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-4">
         <h1 className="text-3xl font-semibold text-claude-text-primary mb-2">
           Resume Management
         </h1>
@@ -315,7 +315,7 @@ export default function DashboardPage() {
         </p>
 
         {/* Security Info */}
-        <div className="items-center mt-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-start space-x-3 shadow-soft">
+        <div className="mb-4 items-center mt-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-start space-x-3 shadow-soft">
           <img
               src="/shield-privacy.png"
               alt="Privacy Shield"
@@ -327,10 +327,31 @@ export default function DashboardPage() {
             Only you can download or manage them.
           </p>
         </div>
+
+        {/* Info Section */}
+      <div className="bg-claude-accent-orange-light shadow-soft rounded-xl p-6 mb-4">
+        <div className="flex items-start space-x-3">
+          <img
+              src="/tip.png"
+              alt="Tip"
+              className={`w-5 h-5 flex-shrink-0`}
+          />
+          <div>
+            <h3 className="font-medium text-claude-text-primary mb-1">
+              Pro Tip
+            </h3>
+            <p className="text-sm text-claude-text-secondary">
+              You can upload multiple versions and switch between them
+              for different job applications. You can also tag any resume from this list using '@' in the chat
+              to analyze specific versions for different roles.
+            </p>
+          </div>
+        </div>
+      </div>
       </div>
 
       {/* Upload Section */}
-      <div className="-mt-1 mb-8">
+      <div className="mb-4">
         <div
           {...getRootProps()}
           className={`
@@ -384,21 +405,7 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      {/* Info Section */}
-      <div className="mt-8 bg-claude-accent-orange-light rounded-xl p-6 mb-8">
-        <div className="flex items-start space-x-3">
-          <AlertCircle className="w-5 h-5 text-claude-accent-orange flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-medium text-claude-text-primary mb-1">
-              Pro Tip
-            </h3>
-            <p className="text-sm text-claude-text-secondary">
-              Upload your most recent resume first. You can upload multiple versions and switch between them
-              for different job applications.
-            </p>
-          </div>
-        </div>
-      </div>
+      
 
       {/* Resumes List */}
       <div>

@@ -1,5 +1,5 @@
 'use client';
-import { MessagesSquare, Trash2, Waypoints } from 'lucide-react';
+import { FileCode, FileCode2, MessagesSquare, ScrollText, Trash2, Waypoints } from 'lucide-react';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Menu,
   Plus,
+  Settings
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -31,7 +32,6 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut, getToken } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  // const [sidebarOpen, setSidebarOpen] = useState(true);
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [recentChats, setRecentChats] = useState<ChatSession[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
@@ -160,7 +160,8 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
           {/* 2. Centering Container */}
           <div className="flex flex-1 items-center justify-center overflow-hidden">
             {/* 3. Animated Logo + Title Wrapper */}
-            <div
+            <Link
+              href='/dashboard/'
               className={`flex items-center whitespace-nowrap transition-all duration-500 ease-in-out ${
                 sidebarOpen
                   ? "translate-x-0 opacity-100"
@@ -173,25 +174,32 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
                 className="h-6 w-6 flex-shrink-0"
               />
               <span className="ml-3 text-lg font-semibold">AppSageAI</span>
-            </div>
+            </Link>
           </div>
           
         </div>
         
         {/* New Chat */}
-        <div className="px-4 mt-4">
-        <Link
-          href="/dashboard/chat/new"
-          className="w-full p-4 flex mb-4 items-center shadow-lg h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-500"
-        >
-          <Plus className="w-5 h-5 flex-shrink-0" />
-          <span
-            className={`overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out
-              ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+        <div className="px-4 mt-3">
+          <button
+            onClick={() => {
+              // window.location.reload();
+              router.push('/dashboard', { scroll: false });
+              // In the next tick, push back to /new
+              setTimeout(() => {
+                router.push('/dashboard/chat/new', { scroll: false });
+              }, 10); // 10–50ms feels smooth
+            }}
+            className="w-full p-4 flex mb-2 items-center shadow-lg h-10 justify-center md:justify-center px-3 py-2 rounded-lg bg-claude-accent-orange text-white hover:bg-claude-accent-orange-hover transition-all duration-500"
           >
-            New Chat
-          </span>
-        </Link>
+            <Plus className="w-5 h-5 flex-shrink-0" />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out 
+                ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
+            >
+              New Chat
+            </span>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -210,7 +218,7 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setChatsExpanded(!chatsExpanded)}
                 className={`w-full h-10 flex items-center justify-center md:justify-between px-3 rounded-lg
-                  ${chatsExpanded ? 'shadow-md bg-claude-accent-orange-light' : 'bg-claude-light'} transition-shadow transition-colors duration-500`}
+                  ${chatsExpanded ? 'shadow-lg bg-claude-accent-orange-light' : 'bg-claude-light'} transition-shadow transition-colors duration-500`}
               >
                 <div className={`flex items-center ${chatsExpanded ? 'text-claude-accent-orange' : 'text-claude-primary'}`}>
                   <MessageSquare
@@ -267,7 +275,7 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
                             chatTitle: chat.job_title || 'Untitled',
                           });
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all duration-500"
+                        className="opacity-0 group-hover:opacity-100 p-1 bg-red-50 rounded transition-all duration-500"
                       >
                         <Trash2 className="w-3 h-3 text-red-500" />
                       </button>
@@ -285,12 +293,13 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Main Nav Items (slides up/down smoothly because Recent Chats block shrinks above it) */}
-            <ul className="space-y-2 transition-all duration-500 ease-in-out">
+            <ul className="space-y-2 mb-2 transition-all duration-500 ease-in-out">
               {[
                 { href: '/dashboard', icon: Sparkles, label: 'Dashboard' },
                 { href: '/dashboard/chat', icon: MessagesSquare, label: 'All Chats' },
                 { href: '/dashboard/jobs', icon: Waypoints, label: 'Job Tracker' },
                 { href: '/dashboard/resume', icon: FileText, label: 'Resume' },
+                { href: '/dashboard/settings', icon: ScrollText, label: 'Customize Prompts' },  
               ].map((item) => (
                 <li key={item.href}>
                   <Link
@@ -315,24 +324,24 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
         </nav>
         
         {/* Meta Llama Card */}
-        {/* <div className="px-4">
-          <div className="justify-center space-x-2 mb-4 relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200 shadow-sm flex items-center transition-all duration-500">
+        <div className="px-4">
+          <div className="h-9 shadow-md justify-center space-x-2 mb-2 relative bg-gradient-to-r from-blue-50 to-violet-50 rounded-lg p-3 border border-violet-200 flex items-center transition-all duration-500">
             <img
-              src="/meta-logo.png"
-              alt="Meta Logo"
+              src="/gemini.png"
+              alt="Gemini Logo"
               className={`w-5 h-5 flex-shrink-0 duration-500 ease-in-out ${sidebarOpen ? 'mr-0 translate-x-0' : '-mr-2 translate-x-0'}`}
             />
             <span
-              className={`overflow-hidden text-sm font-medium text-blue-800 whitespace-nowrap transition-all duration-500 ease-in-out
+              className={`overflow-hidden text-sm font-medium text-violet-900 whitespace-nowrap transition-all duration-500 ease-in-out
                 ${sidebarOpen ? 'ml-2 opacity-100 translate-x-0' : 'ml-0 opacity-0 -translate-x-2'}`}
             >
-              Powered by Llama 3.3 
+              Powered by Gemini 
             </span>
           </div>
-        </div> */}
+        </div>
 
         {/* Privacy First Card */}
-        <div className="px-4">
+        {/* <div className="px-4">
           <div className="justify-center space-x-2 mb-2 relative bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 shadow-sm flex items-center transition-all duration-500">
             <img
               src="/shield-privacy.png"
@@ -346,7 +355,7 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
               Privacy First Architecture
             </span>
           </div>
-        </div>
+        </div> */}
 
         {/* User Section */}
         <div className="p-4 border-t border-claude-border flex-shrink-0">

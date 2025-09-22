@@ -12,7 +12,9 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from google.oauth2 import service_account
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.documents import Document
 
 from app.config.settings import settings
@@ -27,12 +29,17 @@ class ResumeAnalyzer:
         """Initialize the analyzer with models and embeddings."""
         logger.info("Initializing Resume Analyzer...")
         
+        credentials = service_account.Credentials.from_service_account_file(
+            settings.firebase_service_account_path,
+            scopes=['https://www.googleapis.com/auth/generative-language']
+        )
+
         # Initialize LLM
-        self.llm = ChatGroq(
-            model_name=settings.model_name,
+        self.llm = ChatGoogleGenerativeAI(
+            model=settings.model_name,
             temperature=0.7,
-            max_tokens=4000,
-            groq_api_key=settings.get_groq_api_key()
+            credentials=credentials,
+            project=settings.gcp_project_id 
         )
         
         # Initialize embeddings
@@ -52,6 +59,91 @@ class ResumeAnalyzer:
         
         logger.info("Resume Analyzer initialized successfully")
     
+    async def analyze_stream(
+        self,
+        resume_content: bytes,
+        job_description: str,
+        analysis_type: AnalysisType,
+        prompt_template: str,
+        user_name: str = "Candidate",
+        custom_query: Optional[str] = None
+    ):
+        """
+        Stream analysis of resume against job description.
+        Yields chunks as they're generated.
+        """
+        start_time = time.time()
+        
+        try:
+            # Process resume PDF (same as before)
+            documents = self._process_pdf(resume_content)
+            
+            if not documents:
+                raise ValueError("Could not extract text from resume")
+            
+            # Create vector store
+            vectorstore = self._create_vectorstore(documents)
+            
+            # Create retriever
+            retriever = vectorstore.as_retriever(
+                search_type="mmr",
+                search_kwargs={
+                    "k": 5,
+                    "fetch_k": 10,
+                    "lambda_mult": 0.5
+                }
+            )
+            
+            # Format prompt
+            formatted_prompt = prompt_template.format(
+                user_name=user_name,
+                job_description=job_description,
+                context="{context}",
+                user_question=custom_query or ""
+            )
+            
+            # Create QA chain
+            qa_prompt = ChatPromptTemplate.from_messages([
+                ("system", formatted_prompt),
+                ("human", "{input}")
+            ])
+            
+            question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
+            rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+            
+            # Determine the query
+            query = " "
+            if custom_query:
+                query = custom_query
+            
+            # Stream the response
+            token_count = 0
+            async for chunk in rag_chain.astream({"input": query}):
+                # Extract the answer chunk
+                if 'answer' in chunk:
+                    content = chunk['answer']
+                    if content:
+                        yield {"type": "token", "content": content}
+                        token_count += len(content.split())
+            
+            # Send metadata at the end
+            end_time = time.time()
+            response_time_ms = int((end_time - start_time) * 1000)
+            
+            metadata = {
+                'response_time_ms': response_time_ms,
+                'tokens_used': token_count * 4,  # Rough estimate
+                'model': settings.model_name,
+                'analysis_type': analysis_type.value
+            }
+            
+            yield {"type": "metadata", "metadata": metadata}
+            
+        except Exception as e:
+            logger.error(f"Streaming analysis error: {e}")
+            raise
+
+
     async def analyze(
         self,
         resume_content: bytes,
@@ -114,8 +206,12 @@ class ResumeAnalyzer:
             question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
             rag_chain = create_retrieval_chain(retriever, question_answer_chain)
             
-            # Determine the query based on analysis type
-            query = self._get_analysis_query(analysis_type, custom_query)
+            # Determine the query
+            query = " "
+            if custom_query:
+                query = custom_query
+            
+            # query = self._get_analysis_query(analysis_type, custom_query)
             
             # Execute analysis
             response = rag_chain.invoke({"input": query})
@@ -214,6 +310,10 @@ class ResumeAnalyzer:
     
     def _get_analysis_query(self, analysis_type: AnalysisType, custom_query: Optional[str]) -> str:
         """Get the appropriate query for the analysis type."""
+        # If there's a custom query provided, use it
+        if custom_query:
+            return custom_query
+
         queries = {
             AnalysisType.RESUME_REVIEW: "Provide a comprehensive review of this resume against the job description",
             AnalysisType.SKILL_IMPROVEMENT: "What skills should I improve and how?",
@@ -223,7 +323,7 @@ class ResumeAnalyzer:
             AnalysisType.CUSTOM_QUERY: custom_query or "Analyze my resume"
         }
         
-        return queries.get(analysis_type, "Analyze my resume")
+        return queries.get(analysis_type, "Provide the analysis as instructed")
     
     def _estimate_tokens(self, text: str) -> int:
         """Estimate token count for text."""

@@ -76,12 +76,12 @@ export default function HomePage() {
               personalized insights to maximize your chances of success.
             </p>
               
-            {/* Powered by Meta Llama Badge */}
+            {/* Powered by Gemini Badge */}
             <div className="relative mb-[clamp(0.5rem,2.5vh,2rem)]">
             <div className={`glowing-pill absolute inset-0 z-0 inline-flex items-center space-x-3 bg-white rounded-full px-5 py-3 shadow-md transition-all duration-500 delay-300 transform ${
                 isVisible ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
               }`}>
-                {/* Meta Logo SVG */}
+                {/* Gemini Logo SVG */}
                 <Sparkles className="w-5 h-5 flex-shrink-0 text-transparent" />
                 <span className="text-sm font-medium text-transparent">
                   Powered by <span className="font-semibold">Llama 3.3 70B</span>
@@ -93,14 +93,14 @@ export default function HomePage() {
                 isVisible ? 'scale-100 opacity-100' : 'scale-105 opacity-0'
               }`}
             >
-              {/* Meta Logo SVG */}
+              {/* Gemini Logo SVG */}
               <img
-                src="/meta-logo.png"
-                alt="Meta Logo"
+                src="/gemini.png"
+                alt="Gemini Logo"
                 className={`w-5 h-5 flex-shrink-0`}
               />
               <span className="text-sm font-medium text-gray-700">
-                Powered by <span className="font-semibold">Llama 3.3 70B</span>
+                Powered by <span className="font-semibold">Google Gemini</span>
               </span>
             </div>
             
@@ -158,10 +158,10 @@ export default function HomePage() {
                       AES-256 
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                      Rotating Keys
+                      No PII on Logs
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                      No PII on Logs
+                      GDPR
                   </span>
                 </div>
               </div>
@@ -185,16 +185,13 @@ export default function HomePage() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
-                      ATS 
+                      ATS Scan 
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
                       Job Match
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
                       Cover Letter
-                  </span>
-                  <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
-                      Much More
                   </span>
                 </div>
               </div>

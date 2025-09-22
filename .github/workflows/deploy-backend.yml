@@ -68,7 +68,8 @@ jobs:
           --set-env-vars="CORS_ORIGIN_2=${{ secrets.CORS_ORIGIN_2 }}" \
           --set-env-vars="CORS_ORIGIN_3=${{ secrets.CORS_ORIGIN_3 }}" \
           --set-env-vars="REFRESH_TOKEN_EXPIRE_DAYS=30" \
-          --set-env-vars='MODEL_NAME=llama-3.3-70b-versatile' \
+          --set-env-vars='MODEL_NAME=gemini-2.5-flash' \
+          --set-env-vars='JOB_MODEL_NAME=gemini-2.5-flash-lite' \
           --set-env-vars="EMBEDDING_MODEL=all-MiniLM-L6-v2" \
           --set-env-vars="HF_TOKEN=${{ secrets.HF_TOKEN }}" \
           --set-env-vars="RATE_LIMIT_ENABLED=true" \

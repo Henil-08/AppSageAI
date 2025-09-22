@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSidebar } from '../../contexts/SidebarContext';
 import Link from 'next/link';
 import { 
@@ -21,6 +22,7 @@ import {
 export default function DashboardHomePage() {
   const { user, getToken } = useAuth();
   const { sidebarOpen, setSidebarOpen } = useSidebar();
+  const router = useRouter();
   const [greeting, setGreeting] = useState('');
   const [timeOfDay, setTimeOfDay] = useState('');
   const [isVisible, setIsVisible] = useState(false);
@@ -102,7 +104,7 @@ export default function DashboardHomePage() {
   ];
 
   const socialLinks = [
-    { name: 'Website', icon: LucideAppWindow, href: 'https://henilgajjar.framer.ai/', color: 'hover:text-claude-accent-orange' },
+    { name: 'Portfolio', icon: LucideAppWindow, href: 'https://henilgajjar.framer.ai/', color: 'hover:text-claude-accent-orange' },
     { name: 'GitHub', icon: Github, href: 'https://github.com/Henil-08', color: 'hover:text-gray-800' },
     { name: 'LinkedIn', icon: Linkedin, href: 'https://linkedin.com/in/henilgajjar', color: 'hover:text-blue-600' },
     { name: 'Google Scholar', icon: GraduationCap, href: 'https://scholar.google.com/citations?user=RdSGiWYAAAAJ&hl=en', color: 'hover:text-green-600' }
@@ -156,13 +158,13 @@ export default function DashboardHomePage() {
                         insights. Let's make your job search smarter and more successful!
                         </p>
                         <div className="mt-2 flex flex-wrap gap-3">
-                        <Link
-                            href="/dashboard/chat/new"
+                        <button
+                            onClick={() => router.push('/dashboard/chat/new')}
                             className="inline-flex h-10 items-center space-x-2 px-4 py-2 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Start New Chat</span>
-                        </Link>
+                        </button>
                         <Link
                             href="/dashboard/resume"
                             className="inline-flex h-10 items-center space-x-2 px-4 py-2 bg-white text-claude-text-primary border border-claude-border rounded-lg hover:bg-claude-background transition-colors"
@@ -208,6 +210,9 @@ export default function DashboardHomePage() {
                         </span>
                         <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                             No PII in Logs
+                        </span>
+                        <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                            GDPR Compliant
                         </span>
                         </div>
                     </div>
