@@ -153,6 +153,143 @@ export default function ChatPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Function for streaming analysis
+  const performStreamingAnalysis = async (
+    sessionId: string, 
+    analysisType: string, 
+    customQuery?: string
+  ) => {
+    setAnalyzing(true);
+    setCurrentAnalysisType(analysisType);
+    
+    const wasNewChat = actualSessionId === 'new';
+    let fullResponse = '';
+    let streamingMessageId = `streaming_${Date.now()}`;
+    let messageAddedToUI = false;
+
+    try {
+      let resumeToUse = selectedResume;
+      if (customQuery) {
+        const mentionedResume = extractResumeFromMessage(customQuery);
+        if (mentionedResume) {
+          resumeToUse = mentionedResume;
+        }
+      }
+      
+      const token = await getToken();
+      
+      // Start streaming
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/analysis/analyze-stream/${sessionId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            analysis_type: analysisType,
+            resume_id: resumeToUse?.resume_id,
+            custom_query: customQuery
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to start streaming');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'token') {
+                // Add the message to the UI only on the first token
+                if (!messageAddedToUI) {
+                  const streamingMessage: Message = {
+                    message_id: streamingMessageId,
+                    role: 'assistant',
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    metadata: {
+                      analysis_type: analysisType,
+                      resume_used: resumeToUse?.filename
+                    }
+                  };
+                  setMessages(prev => [...prev, streamingMessage]);
+                  messageAddedToUI = true;
+                }
+                
+                fullResponse += data.content;
+                
+                // Update the streaming message
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.message_id === streamingMessageId
+                      ? { ...msg, content: fullResponse }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'metadata') {
+                // Update message with metadata
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.message_id === streamingMessageId
+                      ? { ...msg, metadata: { ...msg.metadata, ...data.metadata } }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'done') {
+                // Replace streaming message with final message
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.message_id === streamingMessageId
+                      ? { ...msg, message_id: data.analysis_id }
+                      : msg
+                  )
+                );
+                
+                if (wasNewChat && sessionId !== 'new') {
+                  window.history.replaceState({}, '', `/dashboard/chat/${sessionId}`);
+                }
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Error in streaming analysis:', error);
+      toast.error('Failed to complete analysis');
+      
+      // Remove the streaming message on error
+      setMessages(prev => prev.filter(msg => msg.message_id !== streamingMessageId));
+    } finally {
+      setAnalyzing(false);
+      setCurrentAnalysisType(null);
+    }
+  };
+
   // Fetch feedback status for all messages
   const fetchMessageFeedback = async () => {
     try {
@@ -472,7 +609,7 @@ export default function ChatPage() {
       const token = await getToken();
       let detectedTitle = "General Consultation";
       let detectedCompany = "Career Development";
-      const fullJobDescription = text; // Always keep full text
+      const fullJobDescription = "";
       
       // Create the chat first with default values
       const createResponse = await fetch(
@@ -644,10 +781,11 @@ export default function ChatPage() {
 
     // --- Assistant Message Handling ---
     // This will now only add the assistant's message, preventing order mix-ups
-    await performAnalysis(currentSessionId, analysisType, customQuery);
+    // await performAnalysis(currentSessionId, analysisType, customQuery);
+    await performStreamingAnalysis(currentSessionId, analysisType, customQuery);
   };
 
-  // Perform the actual analysis
+  // Perform the actual analysis (invoke method)
   const performAnalysis = async (sessionId: string, analysisType: string, customQuery?: string) => {
     setAnalyzing(true);
     setCurrentAnalysisType(analysisType);
@@ -1228,6 +1366,24 @@ export default function ChatPage() {
               ))}
 
               {(analyzing || detectingJob) && (
+                <div className="px-3 mt-2 lex justify-start">
+                  <div className="flex items-center space-x-3">
+                      <img
+                        src="/appsageai-icon.png"
+                        alt="AppSageAI"
+                        className="w-6 h-6 animate-glow"
+                      />
+                      <span className="text-claude-text-secondary">
+                        {detectingJob 
+                          ? 'Detecting job details...' 
+                          : ""
+                        }
+                      </span>
+                    </div>
+                </div>
+              )}
+
+              {/* {(analyzing || detectingJob) && (
                 <div className="flex justify-start">
                   <div className="bg-white border border-claude-border rounded-2xl px-4 py-3">
                     <div className="flex items-center space-x-2">
@@ -1238,7 +1394,7 @@ export default function ChatPage() {
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
 
               <div ref={messagesEndRef} />
             </div>
@@ -1317,7 +1473,7 @@ export default function ChatPage() {
 
               {/* Resume Selector */}
               {showResumeSelector && (
-                <div className="absolute bottom-full mb-2 left-0 bg-white rounded-lg shadow-lg border border-claude-border z-10 w-72 max-h-64 overflow-y-auto">
+                <div className="absolute bottom-full mb-2 left-0 bg-white rounded-lg shadow-lg border border-claude-border z-10 w-auto max-h-64 overflow-y-auto">
                   <div className="p-2">
                     <div className="text-xs font-medium text-claude-text-secondary px-2 py-1">
                       Select Resume (↑↓ to navigate, Enter/Tab to select)
@@ -1411,6 +1567,25 @@ export default function ChatPage() {
         
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* Add smooth height transition for message containers */
+        .message-container {
+          transition: height 0.3s ease-in-out;
+        }
+        
+        /* Glowing animation for the logo */
+        @keyframes glow {
+          0%, 100% {
+            filter: drop-shadow(0 0 10px rgba(255, 117, 24, 0.8));
+          }
+          50% {
+            filter: drop-shadow(0 0 0px rgba(255, 117, 24, 0.5));
+          }
+        }
+        
+        .animate-glow {
+          animation: glow 2s ease-in-out infinite;
         }
       `}</style>
     </div>

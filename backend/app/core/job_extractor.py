@@ -29,10 +29,9 @@ async def extract_job_details(text: str) -> Dict[str, Any]:
 
         # Initialize LLM
         llm = ChatGoogleGenerativeAI(
-            model=settings.model_name_job,
+            model=settings.job_model_name,
             temperature=0.1,
             credentials=credentials,
-            project=settings.gcp_project_id 
         )
         
         # Create extraction prompt
@@ -61,7 +60,7 @@ async def extract_job_details(text: str) -> Dict[str, Any]:
         chain = prompt | llm
         
         # Execute extraction
-        response = await chain.ainvoke({"text": text[:3000]})  # Limit text length
+        response = await chain.ainvoke({"text": text})
         
         # Parse response
         try:

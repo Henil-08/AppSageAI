@@ -158,10 +158,10 @@ export default function HomePage() {
                       AES-256 
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                      Rotating Keys
+                      No PII on Logs
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                      No PII on Logs
+                      GDPR
                   </span>
                 </div>
               </div>
@@ -185,16 +185,13 @@ export default function HomePage() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
-                      ATS 
+                      ATS Scan 
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
                       Job Match
                   </span>
                   <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
                       Cover Letter
-                  </span>
-                  <span className="inline-flex items-center px-2 py-1 bg-[#FCF0DC] text-[#FDB441] text-xs rounded-full">
-                      Much More
                   </span>
                 </div>
               </div>

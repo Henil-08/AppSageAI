@@ -59,6 +59,91 @@ class ResumeAnalyzer:
         
         logger.info("Resume Analyzer initialized successfully")
     
+    async def analyze_stream(
+        self,
+        resume_content: bytes,
+        job_description: str,
+        analysis_type: AnalysisType,
+        prompt_template: str,
+        user_name: str = "Candidate",
+        custom_query: Optional[str] = None
+    ):
+        """
+        Stream analysis of resume against job description.
+        Yields chunks as they're generated.
+        """
+        start_time = time.time()
+        
+        try:
+            # Process resume PDF (same as before)
+            documents = self._process_pdf(resume_content)
+            
+            if not documents:
+                raise ValueError("Could not extract text from resume")
+            
+            # Create vector store
+            vectorstore = self._create_vectorstore(documents)
+            
+            # Create retriever
+            retriever = vectorstore.as_retriever(
+                search_type="mmr",
+                search_kwargs={
+                    "k": 5,
+                    "fetch_k": 10,
+                    "lambda_mult": 0.5
+                }
+            )
+            
+            # Format prompt
+            formatted_prompt = prompt_template.format(
+                user_name=user_name,
+                job_description=job_description,
+                context="{context}",
+                user_question=custom_query or ""
+            )
+            
+            # Create QA chain
+            qa_prompt = ChatPromptTemplate.from_messages([
+                ("system", formatted_prompt),
+                ("human", "{input}")
+            ])
+            
+            question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
+            rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+            
+            # Determine the query
+            query = " "
+            if custom_query:
+                query = custom_query
+            
+            # Stream the response
+            token_count = 0
+            async for chunk in rag_chain.astream({"input": query}):
+                # Extract the answer chunk
+                if 'answer' in chunk:
+                    content = chunk['answer']
+                    if content:
+                        yield {"type": "token", "content": content}
+                        token_count += len(content.split())
+            
+            # Send metadata at the end
+            end_time = time.time()
+            response_time_ms = int((end_time - start_time) * 1000)
+            
+            metadata = {
+                'response_time_ms': response_time_ms,
+                'tokens_used': token_count * 4,  # Rough estimate
+                'model': settings.model_name,
+                'analysis_type': analysis_type.value
+            }
+            
+            yield {"type": "metadata", "metadata": metadata}
+            
+        except Exception as e:
+            logger.error(f"Streaming analysis error: {e}")
+            raise
+
+
     async def analyze(
         self,
         resume_content: bytes,
