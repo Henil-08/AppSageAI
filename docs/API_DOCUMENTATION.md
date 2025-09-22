@@ -1,42 +1,42 @@
-# AppSageAI API Documentation
+# API Documentation for AppSageAI
 
-## 🔑 Authentication
+## Base URL
+- **Development:** `http://localhost:8000`
+- **Production:** `https://appsageai-backend-964026407675.us-central1.run.app`
 
-All API endpoints (except health check) require Firebase authentication token.
-
-### Headers Required
-```http
+## Authentication
+All API endpoints (except health check) require Firebase authentication token in the header:
+```
 Authorization: Bearer <firebase-id-token>
-Content-Type: application/json
-```
-
-### Getting Firebase Token (Frontend)
-```javascript
-const user = await firebase.auth().currentUser;
-const token = await user.getIdToken();
 ```
 
 ---
 
-## 📋 API Endpoints
+## Health Check
 
-### Base URL
-```
-Development: http://localhost:8000/api/v1
-Production: https://api.appsageai.com/api/v1
-```
+### `/health`
+**Method:** `GET`  
+**Description:** Health check endpoint to verify API is running  
+**Authentication:** Not required
 
----
-
-## 🔐 Authentication Endpoints
-
-### POST `/auth/verify`
-Verify Firebase token and create/get user profile.
-
-**Request:**
+**Response:**
 ```json
-// No body required, token in header
+{
+  "status": "healthy",
+  "app": "AppSageAI",
+  "version": "2.0.0",
+  "environment": "development"
+}
 ```
+
+---
+
+## Authentication Endpoints
+
+### `/api/v1/auth/verify`
+**Method:** `POST`  
+**Description:** Verify Firebase token and get/create user profile  
+**Authentication:** Required
 
 **Response:**
 ```json
@@ -55,33 +55,55 @@ Verify Firebase token and create/get user profile.
 }
 ```
 
-### GET `/auth/me`
-Get current user profile.
+### `/api/v1/auth/me`
+**Method:** `GET`  
+**Description:** Get current authenticated user's profile  
+**Authentication:** Required
+
+**Response:** Same as `/verify` endpoint
+
+### `/api/v1/auth/logout`
+**Method:** `POST`  
+**Description:** Logout endpoint (client-side token invalidation)  
+**Authentication:** Required
 
 **Response:**
 ```json
 {
+  "message": "Logged out successfully"
+}
+```
+
+### `/api/v1/auth/check`
+**Method:** `GET`  
+**Description:** Quick auth status check without fetching full profile  
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "authenticated": true,
   "uid": "user123",
   "email": "user@example.com",
-  "name": "John Doe",
-  "plan": "free",
-  "usage": {...}
+  "email_verified": true
 }
 ```
 
 ---
 
-## 📄 Resume Management
+## Resume Management
 
-### POST `/resume/upload`
-Upload resume (one-time, reused across all chats).
+### `/api/v1/resume/upload`
+**Method:** `POST`  
+**Description:** Upload a resume PDF file (encrypted server-side)  
+**Authentication:** Required  
+**Content-Type:** `multipart/form-data`
 
-**Request:**
-```http
-Content-Type: multipart/form-data
-
-file: <pdf-file>
-```
+**Form Data:**
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| file | File | Yes | PDF file to upload (max 10MB) |
+| target_role | string | No | Target role for this resume version |
 
 **Response:**
 ```json
@@ -94,15 +116,10 @@ file: <pdf-file>
 }
 ```
 
-**Error Response (400):**
-```json
-{
-  "detail": "File size exceeds 10MB limit"
-}
-```
-
-### GET `/resume/list`
-List all uploaded resumes.
+### `/api/v1/resume/list`
+**Method:** `GET`  
+**Description:** List all uploaded resumes for current user  
+**Authentication:** Required
 
 **Response:**
 ```json
@@ -113,6 +130,7 @@ List all uploaded resumes.
       "filename": "john_doe_resume.pdf",
       "uploaded_at": "2024-01-15T10:30:00Z",
       "analysis_count": 5,
+      "target_role": "Full Stack Developer",
       "is_active": true
     }
   ],
@@ -121,8 +139,15 @@ List all uploaded resumes.
 }
 ```
 
-### POST `/resume/{resume_id}/set-active`
-Set a resume as active for analysis.
+### `/api/v1/resume/{resume_id}/set-active`
+**Method:** `POST`  
+**Description:** Set a resume as active for analysis  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| resume_id | string | Resume ID to set as active |
 
 **Response:**
 ```json
@@ -132,8 +157,52 @@ Set a resume as active for analysis.
 }
 ```
 
-### DELETE `/resume/{resume_id}`
-Delete a resume.
+### `/api/v1/resume/{resume_id}/download`
+**Method:** `GET`  
+**Description:** Download a resume file  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| resume_id | string | Resume ID to download |
+
+**Response:** Binary PDF file with appropriate headers
+
+### `/api/v1/resume/{resume_id}/target-role`
+**Method:** `PATCH`  
+**Description:** Update the target role for a resume  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| resume_id | string | Resume ID to update |
+
+**Request Body:**
+```json
+{
+  "target_role": "Senior Full Stack Developer"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Target role updated",
+  "target_role": "Senior Full Stack Developer"
+}
+```
+
+### `/api/v1/resume/{resume_id}`
+**Method:** `DELETE`  
+**Description:** Delete a resume  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| resume_id | string | Resume ID to delete |
 
 **Response:**
 ```json
@@ -144,19 +213,20 @@ Delete a resume.
 
 ---
 
-## 💬 Chat Session Management
+## Chat Management
 
-### POST `/chat/create`
-Create a new chat session for a job application.
+### `/api/v1/chat/create`
+**Method:** `POST`  
+**Description:** Create a new chat session for job analysis  
+**Authentication:** Required
 
-**Request:**
-```json
-{
-  "job_description": "We are looking for a Senior Full Stack Developer...",
-  "job_title": "Senior Full Stack Developer",  // Optional
-  "company": "TechCorp Inc."  // Optional
-}
-```
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| job_description | string | No | Job description text |
+| job_title | string | No | Job title |
+| company | string | No | Company name |
+| initial_message | string | No | Initial message for the chat |
 
 **Response:**
 ```json
@@ -169,12 +239,16 @@ Create a new chat session for a job application.
 }
 ```
 
-### GET `/chat/list`
-List all chat sessions.
+### `/api/v1/chat/list`
+**Method:** `GET`  
+**Description:** List all chat sessions for the user  
+**Authentication:** Required
 
 **Query Parameters:**
-- `limit` (int, default: 20): Number of results
-- `offset` (int, default: 0): Pagination offset
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| limit | integer | 20 | Number of results to return |
+| offset | integer | 0 | Pagination offset |
 
 **Response:**
 ```json
@@ -187,7 +261,10 @@ List all chat sessions.
       "job_title": "Senior Full Stack Developer",
       "company": "TechCorp Inc.",
       "message_count": 5,
-      "preview": "We are looking for a Senior..."
+      "preview": "We are looking for a Senior...",
+      "tracker_status": "applied",
+      "applied_date": "2024-01-16",
+      "tracker_notes": "Submitted via LinkedIn"
     }
   ],
   "total": 10,
@@ -197,8 +274,15 @@ List all chat sessions.
 }
 ```
 
-### GET `/chat/{session_id}`
-Get chat session with all messages.
+### `/api/v1/chat/{session_id}`
+**Method:** `GET`  
+**Description:** Get a specific chat session with all messages  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| session_id | string | Chat session ID |
 
 **Response:**
 ```json
@@ -213,14 +297,14 @@ Get chat session with all messages.
     {
       "message_id": "msg_001",
       "role": "user",
-      "encrypted_content": "encrypted_base64_string",
+      "encrypted_content": "What are my chances?",
       "timestamp": "2024-01-15T10:35:00Z",
       "metadata": {}
     },
     {
       "message_id": "msg_002",
       "role": "assistant",
-      "encrypted_content": "encrypted_base64_string",
+      "encrypted_content": "Based on my analysis...",
       "timestamp": "2024-01-15T10:36:00Z",
       "metadata": {
         "analysis_type": "resume_review",
@@ -232,14 +316,21 @@ Get chat session with all messages.
 }
 ```
 
-### POST `/chat/{session_id}/message`
-Add a message to chat session.
+### `/api/v1/chat/{session_id}/message`
+**Method:** `POST`  
+**Description:** Add a message to the chat session  
+**Authentication:** Required
 
-**Request:**
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| session_id | string | Chat session ID |
+
+**Request Body:**
 ```json
 {
   "role": "user",
-  "encrypted_content": "encrypted_base64_string",
+  "encrypted_content": "What skills should I improve?",
   "metadata": {
     "client_timestamp": "2024-01-15T10:35:00Z"
   }
@@ -254,8 +345,69 @@ Add a message to chat session.
 }
 ```
 
-### DELETE `/chat/{session_id}`
-Delete a chat session.
+### `/api/v1/chat/{session_id}/update`
+**Method:** `PATCH`  
+**Description:** Update chat session details  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| session_id | string | Chat session ID |
+
+**Request Body:**
+```json
+{
+  "job_title": "Updated Job Title",
+  "company": "Updated Company",
+  "job_description": "Updated job description..."
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Chat details updated successfully",
+  "session_id": "chat_xyz789",
+  "job_title": "Updated Job Title",
+  "company": "Updated Company"
+}
+```
+
+### `/api/v1/chat/{session_id}/tracker`
+**Method:** `PATCH`  
+**Description:** Update job tracker status for a chat  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| session_id | string | Chat session ID |
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| tracker_status | string | Yes | Status: interested, applied, interviewing, offered, rejected |
+| applied_date | string | No | Date applied (ISO format) |
+| notes | string | No | Tracker notes |
+
+**Response:**
+```json
+{
+  "message": "Tracker status updated",
+  "status": "applied"
+}
+```
+
+### `/api/v1/chat/{session_id}`
+**Method:** `DELETE`  
+**Description:** Delete a chat session and all its messages  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| session_id | string | Chat session ID |
 
 **Response:**
 ```json
@@ -266,16 +418,24 @@ Delete a chat session.
 
 ---
 
-## 🎯 Analysis Endpoints
+## Analysis Endpoints
 
-### POST `/analysis/analyze/{session_id}`
-Perform resume analysis.
+### `/api/v1/analysis/analyze/{session_id}`
+**Method:** `POST`  
+**Description:** Perform AI analysis on resume against job description  
+**Authentication:** Required
 
-**Request:**
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| session_id | string | Chat session ID |
+
+**Request Body:**
 ```json
 {
-  "analysis_type": "resume_review",  // See types below
-  "custom_query": null  // Required only for "custom_query" type
+  "analysis_type": "resume_review",
+  "custom_query": null,
+  "resume_id": null
 }
 ```
 
@@ -285,13 +445,13 @@ Perform resume analysis.
 - `keyword_analysis` - ATS keyword optimization
 - `percentage_match` - Match percentage calculation
 - `cover_letter` - Generate cover letter
-- `custom_query` - Custom question
+- `custom_query` - Custom question (requires custom_query field)
 
 **Response:**
 ```json
 {
   "analysis_id": "analysis_001",
-  "encrypted_response": "encrypted_analysis_result",
+  "encrypted_response": "Analysis result...",
   "metadata": {
     "tokens_used": 1500,
     "response_time_ms": 2340,
@@ -302,8 +462,58 @@ Perform resume analysis.
 }
 ```
 
-### GET `/analysis/quick-actions/{session_id}`
-Get available quick actions for chat.
+### `/api/v1/analysis/analyze-stream/{session_id}`
+**Method:** `POST`  
+**Description:** Perform analysis with Server-Sent Events streaming  
+**Authentication:** Required  
+**Response Type:** `text/event-stream`
+
+**Path Parameters:** Same as non-streaming endpoint  
+**Request Body:** Same as non-streaming endpoint
+
+**Response Stream:**
+```
+data: {"type": "token", "content": "Based"}
+data: {"type": "token", "content": " on"}
+data: {"type": "token", "content": " my"}
+data: {"type": "metadata", "metadata": {"tokens_used": 150}}
+data: {"type": "done", "analysis_id": "analysis_001"}
+```
+
+### `/api/v1/analysis/extract-job-details`
+**Method:** `POST`  
+**Description:** Extract job details from text using AI  
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "text": "We are looking for a Senior Full Stack Developer..."
+}
+```
+
+**Response:**
+```json
+{
+  "job_title": "Senior Full Stack Developer",
+  "company": "TechCorp Inc.",
+  "job_description": "Formatted job description...",
+  "location": "Remote",
+  "salary": "$120,000 - $180,000",
+  "job_type": "Full-time",
+  "is_job_listing": true
+}
+```
+
+### `/api/v1/analysis/quick-actions/{session_id}`
+**Method:** `GET`  
+**Description:** Get available quick actions for a chat session  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| session_id | string | Chat session ID |
 
 **Response:**
 ```json
@@ -324,35 +534,203 @@ Get available quick actions for chat.
       "description": "Check ATS compatibility and keywords",
       "icon": "🎯"
     }
-    // ... more actions
   ]
 }
 ```
 
-### POST `/analysis/feedback/{analysis_id}`
-Submit feedback for an analysis.
+### `/api/v1/analysis/feedback/{message_id}`
+**Method:** `POST`  
+**Description:** Submit or toggle feedback for a message  
+**Authentication:** Required
 
-**Request:**
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| message_id | string | Message ID to provide feedback for |
+
+**Request Body:**
 ```json
 {
-  "feedback_type": "thumbs_up",  // or "thumbs_down"
-  "comment": "Very helpful analysis!"  // Optional
+  "feedback_type": "thumbs_up",
+  "comment": "Very helpful analysis!"
 }
 ```
 
 **Response:**
 ```json
 {
-  "message": "Thank you for your feedback!"
+  "message": "Thank you for your feedback!",
+  "feedback_type": "thumbs_up"
+}
+```
+
+### `/api/v1/analysis/feedback/bulk`
+**Method:** `GET`  
+**Description:** Get feedback status for multiple messages  
+**Authentication:** Required
+
+**Query Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| message_ids | string | Comma-separated list of message IDs |
+
+**Response:**
+```json
+{
+  "feedback": {
+    "msg_001": "thumbs_up",
+    "msg_002": null,
+    "msg_003": "thumbs_down"
+  }
 }
 ```
 
 ---
 
-## 👤 User Management
+## Custom Prompts
 
-### GET `/user/stats`
-Get user statistics.
+### `/api/v1/prompts/defaults`
+**Method:** `GET`  
+**Description:** Get all default prompt templates  
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "prompts": {
+    "resume_review": "Default resume review prompt...",
+    "skill_improvement": "Default skill improvement prompt...",
+    "keyword_analysis": "Default ATS analysis prompt...",
+    "percentage_match": "Default match calculation prompt...",
+    "cover_letter": "Default cover letter prompt..."
+  },
+  "message": "Default prompts retrieved successfully"
+}
+```
+
+### `/api/v1/prompts/custom`
+**Method:** `GET`  
+**Description:** Get user's custom prompt templates  
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "prompts": {
+    "resume_review": "Custom resume review prompt...",
+    "skill_improvement": "Custom skill improvement prompt..."
+  },
+  "has_custom": true,
+  "message": "Custom prompts retrieved successfully"
+}
+```
+
+### `/api/v1/prompts/update`
+**Method:** `POST`  
+**Description:** Update a single custom prompt template  
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "analysis_type": "resume_review",
+  "prompt_template": "Your custom prompt with {context} placeholder..."
+}
+```
+
+**Note:** Prompt must include `{context}` placeholder for RAG to work
+
+**Response:**
+```json
+{
+  "message": "Prompt updated successfully",
+  "analysis_type": "resume_review"
+}
+```
+
+### `/api/v1/prompts/update-all`
+**Method:** `POST`  
+**Description:** Update all custom prompts at once  
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "prompts": {
+    "resume_review": "Custom prompt 1 with {context}...",
+    "skill_improvement": "Custom prompt 2 with {context}..."
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "message": "All prompts updated successfully",
+  "updated_count": 2
+}
+```
+
+### `/api/v1/prompts/reset/{analysis_type}`
+**Method:** `POST`  
+**Description:** Reset a specific prompt to default  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| analysis_type | string | Type of analysis prompt to reset |
+
+**Response:**
+```json
+{
+  "message": "Prompt reset to default",
+  "analysis_type": "resume_review",
+  "default_prompt": "Default prompt content..."
+}
+```
+
+### `/api/v1/prompts/reset-all`
+**Method:** `POST`  
+**Description:** Reset all prompts to default  
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "message": "All prompts reset to default successfully",
+  "deleted_count": 3
+}
+```
+
+### `/api/v1/prompts/validate/{analysis_type}`
+**Method:** `GET`  
+**Description:** Validate if a custom prompt exists and is properly formatted  
+**Authentication:** Required
+
+**Path Parameters:**
+| Parameter | Type | Description |
+| --- | --- | --- |
+| analysis_type | string | Type of analysis prompt to validate |
+
+**Response:**
+```json
+{
+  "valid": true,
+  "uses_default": false,
+  "has_context": true,
+  "message": "Custom prompt is valid"
+}
+```
+
+---
+
+## User Management
+
+### `/api/v1/user/stats`
+**Method:** `GET`  
+**Description:** Get user statistics and usage  
+**Authentication:** Required
 
 **Response:**
 ```json
@@ -366,8 +744,10 @@ Get user statistics.
 }
 ```
 
-### GET `/user/usage`
-Get usage limits and current usage.
+### `/api/v1/user/usage`
+**Method:** `GET`  
+**Description:** Get usage limits and current usage  
+**Authentication:** Required
 
 **Response:**
 ```json
@@ -393,11 +773,15 @@ Get usage limits and current usage.
 }
 ```
 
-### DELETE `/user/account`
-Delete user account (irreversible).
+### `/api/v1/user/account`
+**Method:** `DELETE`  
+**Description:** Delete user account and all associated data (irreversible)  
+**Authentication:** Required
 
 **Query Parameters:**
-- `confirm` (bool): Must be `true` to confirm
+| Parameter | Type | Required | Description |
+| --- | --- | --- |
+| confirm | boolean | Yes | Must be `true` to confirm deletion |
 
 **Response:**
 ```json
@@ -408,24 +792,9 @@ Delete user account (irreversible).
 
 ---
 
-## 🏥 Health & Status
+## Error Responses
 
-### GET `/health`
-Health check endpoint (no auth required).
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "app": "AppSageAI",
-  "version": "2.0.0",
-  "environment": "development"
-}
-```
-
----
-
-## 🔴 Error Responses
+All endpoints may return the following error responses:
 
 ### 400 Bad Request
 ```json
@@ -476,135 +845,54 @@ Health check endpoint (no auth required).
 
 ---
 
-## 🔄 Workflow Examples
-
-### Complete User Journey
-
-1. **Authentication**
-```bash
-# Get Firebase token from frontend
-# Include in all requests as Bearer token
-```
-
-2. **Upload Resume (One Time)**
-```bash
-POST /api/v1/resume/upload
-Content-Type: multipart/form-data
-Authorization: Bearer <token>
-
-file: resume.pdf
-```
-
-3. **Create Chat Session**
-```bash
-POST /api/v1/chat/create
-{
-  "job_description": "Full stack developer role...",
-  "job_title": "Full Stack Developer",
-  "company": "TechCorp"
-}
-```
-
-4. **Perform Analysis**
-```bash
-POST /api/v1/analysis/analyze/{session_id}
-{
-  "analysis_type": "resume_review"
-}
-```
-
-5. **Continue Conversation**
-```bash
-POST /api/v1/chat/{session_id}/message
-{
-  "role": "user",
-  "encrypted_content": "What skills should I focus on?",
-  "metadata": {}
-}
-
-POST /api/v1/analysis/analyze/{session_id}
-{
-  "analysis_type": "skill_improvement"
-}
-```
-
-6. **Submit Feedback**
-```bash
-POST /api/v1/analysis/feedback/{analysis_id}
-{
-  "feedback_type": "thumbs_up",
-  "comment": "Very helpful!"
-}
-```
-
----
-
-## 🔒 Encryption Notes
-
-### Client-Side Encryption
-The API expects certain fields to be encrypted client-side:
-- Resume content
-- Chat messages
-- Analysis results
-
-### Encryption Format
-```javascript
-// Frontend encryption example
-const encrypted = await encryptWithUserKey(plaintext);
-// Send as base64 string
-```
-
-### Why Encryption?
-- Zero-knowledge architecture
-- User privacy protection
-- Compliance with data regulations
-
----
-
-## 📊 Rate Limits
+## Rate Limits
 
 | Plan | Requests/Minute | Daily Analyses | Monthly Tokens |
-|------|----------------|----------------|----------------|
+|------|-----------------|----------------|----------------|
 | Free | 60 | 10 | 100,000 |
-| Pro | 300 | 100 | 1,000,000 |
 
 ---
 
-## 🧪 Testing with cURL
+## Security Notes
 
-### Test Health Check
+- All sensitive data is encrypted server-side using AES-256 encryption
+- Authentication is handled via Firebase Auth with JWT tokens
+- CORS is configured to allow only whitelisted origins
+- All API calls must use HTTPS in production
+- Rate limiting is enforced to prevent abuse
+
+---
+
+## Testing with cURL
+
+### Health Check
 ```bash
 curl http://localhost:8000/health
 ```
 
-### Test with Authentication
+### Authenticated Request Example
 ```bash
-# Set your Firebase token
+# Get Firebase token from browser console or auth flow
 TOKEN="your-firebase-id-token"
 
-# Test auth endpoint
+# Test authentication
 curl -X POST http://localhost:8000/api/v1/auth/verify \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json"
-```
 
-### Upload Resume
-```bash
+# Upload Resume
 curl -X POST http://localhost:8000/api/v1/resume/upload \
   -H "Authorization: Bearer $TOKEN" \
-  -F "file=@/path/to/resume.pdf"
+  -F "file=@resume.pdf" \
+  -F "target_role=Full Stack Developer"
+
+# Create Chat Session
+curl -X POST "http://localhost:8000/api/v1/chat/create?job_title=Developer&company=TechCorp" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Perform Analysis
+curl -X POST http://localhost:8000/api/v1/analysis/analyze/chat_xyz789 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"analysis_type": "resume_review"}'
 ```
-
----
-
-## 📝 Notes
-
-- All timestamps are in UTC ISO format
-- File uploads limited to 10MB
-- Encrypted fields should be base64 encoded
-- Request IDs are included in error responses for debugging
-- Analytics are collected without PII
-
----
-
-For more examples and Postman collection, see the `tests/postman/` directory.
