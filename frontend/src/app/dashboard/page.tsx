@@ -211,6 +211,9 @@ export default function DashboardHomePage() {
                         <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                             No PII in Logs
                         </span>
+                        <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                            GDPR Compliant
+                        </span>
                         </div>
                     </div>
                 </div>

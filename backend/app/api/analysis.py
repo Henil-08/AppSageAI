@@ -99,10 +99,39 @@ async def analyze_chat(
         
         # Get appropriate prompt
         analysis_type = AnalysisType(request.analysis_type)
-        prompt_template = prompt_manager.get_prompt(
-            analysis_type,
-            custom_query=request.custom_query
-        )
+
+        # Check if user has custom prompt for this analysis type
+        custom_prompt = None
+        try:
+            prompts_ref = db.collection("users").document(user_uid)\
+                .collection("custom_prompts").document(request.analysis_type)
+            prompt_doc = prompts_ref.get()
+            if prompt_doc.exists:
+                encrypted_prompt = prompt_doc.to_dict().get("prompt_template")
+
+                # Decrypt the custom prompt
+                try:
+                    custom_prompt = encryption_service.decrypt_content(encrypted_prompt).decode()
+                except:
+                    # If decryption fails, might be old unencrypted data
+                    custom_prompt = encrypted_prompt
+                
+                # IMPORTANT: Ensure {context} is in the prompt for RAG to work
+                if "{context}" not in custom_prompt:
+                    # If user removed {context}, add it at the end
+                    custom_prompt += "\n\nContext from resume:\n{context}"  
+        except Exception as e:
+            logger.warning(f"Error loading custom prompt: {e}")
+            pass  # Use default if error
+
+        # Use custom prompt if available, otherwise use default
+        if custom_prompt:
+            prompt_template = custom_prompt
+        else:
+            prompt_template = prompt_manager.get_prompt(
+                analysis_type,
+                custom_query=request.custom_query
+            )
         
         # Perform analysis
         result, metadata = await analyzer.analyze(

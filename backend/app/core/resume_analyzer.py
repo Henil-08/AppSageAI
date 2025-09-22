@@ -121,8 +121,12 @@ class ResumeAnalyzer:
             question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
             rag_chain = create_retrieval_chain(retriever, question_answer_chain)
             
-            # Determine the query based on analysis type
-            query = self._get_analysis_query(analysis_type, custom_query)
+            # Determine the query
+            query = " "
+            if custom_query:
+                query = custom_query
+            
+            # query = self._get_analysis_query(analysis_type, custom_query)
             
             # Execute analysis
             response = rag_chain.invoke({"input": query})
@@ -221,6 +225,10 @@ class ResumeAnalyzer:
     
     def _get_analysis_query(self, analysis_type: AnalysisType, custom_query: Optional[str]) -> str:
         """Get the appropriate query for the analysis type."""
+        # If there's a custom query provided, use it
+        if custom_query:
+            return custom_query
+
         queries = {
             AnalysisType.RESUME_REVIEW: "Provide a comprehensive review of this resume against the job description",
             AnalysisType.SKILL_IMPROVEMENT: "What skills should I improve and how?",
@@ -230,7 +238,7 @@ class ResumeAnalyzer:
             AnalysisType.CUSTOM_QUERY: custom_query or "Analyze my resume"
         }
         
-        return queries.get(analysis_type, "Analyze my resume")
+        return queries.get(analysis_type, "Provide the analysis as instructed")
     
     def _estimate_tokens(self, text: str) -> int:
         """Estimate token count for text."""

@@ -1,5 +1,5 @@
 'use client';
-import { MessagesSquare, Trash2, Waypoints } from 'lucide-react';
+import { FileCode, FileCode2, MessagesSquare, ScrollText, Trash2, Waypoints } from 'lucide-react';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Menu,
   Plus,
+  Settings
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -292,12 +293,13 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Main Nav Items (slides up/down smoothly because Recent Chats block shrinks above it) */}
-            <ul className="space-y-2 transition-all duration-500 ease-in-out">
+            <ul className="space-y-2 mb-2 transition-all duration-500 ease-in-out">
               {[
                 { href: '/dashboard', icon: Sparkles, label: 'Dashboard' },
                 { href: '/dashboard/chat', icon: MessagesSquare, label: 'All Chats' },
                 { href: '/dashboard/jobs', icon: Waypoints, label: 'Job Tracker' },
                 { href: '/dashboard/resume', icon: FileText, label: 'Resume' },
+                { href: '/dashboard/settings', icon: ScrollText, label: 'Customize Prompts' },  
               ].map((item) => (
                 <li key={item.href}>
                   <Link
@@ -323,7 +325,7 @@ function DashboardUI({ children }: { children: React.ReactNode }) {
         
         {/* Meta Llama Card */}
         <div className="px-4">
-          <div className="mt-4 h-9 shadow-md justify-center space-x-2 mb-2 relative bg-gradient-to-r from-blue-50 to-violet-50 rounded-lg p-3 border border-violet-200 flex items-center transition-all duration-500">
+          <div className="h-9 shadow-md justify-center space-x-2 mb-2 relative bg-gradient-to-r from-blue-50 to-violet-50 rounded-lg p-3 border border-violet-200 flex items-center transition-all duration-500">
             <img
               src="/gemini.png"
               alt="Gemini Logo"

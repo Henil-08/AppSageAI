@@ -7,6 +7,7 @@ from app.api.analysis import router as analysis_router
 from app.api.chat import router as chat_router
 from app.api.user import router as user_router
 from app.api.resume import router as resume_router
+from app.api.prompts import router as prompts_router
 
 # Create main API router
 router = APIRouter()
@@ -17,6 +18,7 @@ router.include_router(resume_router, prefix="/resume", tags=["Resume"])
 router.include_router(chat_router, prefix="/chat", tags=["Chat"])
 router.include_router(analysis_router, prefix="/analysis", tags=["Analysis"])
 router.include_router(user_router, prefix="/user", tags=["User"])
+router.include_router(prompts_router, prefix="/prompts", tags=["Prompts"])
 
 # API root endpoint
 @router.get("/")

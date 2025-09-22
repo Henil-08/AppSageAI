@@ -117,7 +117,7 @@ export default function ChatsPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex justify-between items-start mb-5">
+      <div className="flex justify-between items-start mb-4">
         <div>
           <h1 className="text-3xl font-semibold text-claude-text-primary mb-2">
             Your Chats
