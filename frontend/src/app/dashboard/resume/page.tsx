@@ -329,25 +329,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Info Section */}
-      <div className="bg-yellow-50 border border-yellow-200 shadow-soft rounded-xl p-4 mb-4">
-        <div className="flex items-start space-x-3">
-          <img
-              src="/tip.png"
-              alt="Tip"
-              className={`w-5 h-5 flex-shrink-0`}
-          />
-          <div>
-            <h3 className="font-medium text-claude-text-primary mb-1">
-              Pro Tip
-            </h3>
-            <p className="text-sm text-claude-text-secondary">
-              You can upload multiple versions and switch between them
-              for different job applications. You can also tag any resume from this list using '@' in the chat
-              to analyze specific versions for different roles.
-            </p>
+        <div className="bg-yellow-50 border border-yellow-200 shadow-soft rounded-xl p-4 mb-4">
+          <div className="flex items-start space-x-3">
+            <img
+                src="/tip.png"
+                alt="Tip"
+                className={`w-5 h-5 flex-shrink-0`}
+            />
+            <div>
+              <h3 className="font-medium text-claude-text-primary mb-1">
+                Pro Tip
+              </h3>
+              <p className="text-sm text-claude-text-secondary">
+                You can upload multiple versions and switch between them
+                for different job applications. You can also tag any resume from this list using '@' in the chat
+                to analyze specific versions for different roles.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
       </div>
 
       {/* Upload Section */}

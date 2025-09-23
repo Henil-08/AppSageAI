@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '../../../../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Link from 'next/link';
 import { 
   Send,
   ArrowLeft,
-  Briefcase,
   FileText,
   Target,
   TrendingUp,
@@ -1215,7 +1215,11 @@ export default function ChatPage() {
               <div>
                 <h2 className="font-medium text-claude-text-primary flex items-center">
                   {detectingJob && (
-                    <RefreshCw className="w-4 h-4 mr-2 text-claude-accent-orange animate-spin" />
+                    <img
+                      src="/appsageai-icon.png"
+                      alt="AppSageAI"
+                      className="w-4 h-4 mr-2 animate-glow"
+                    />
                   )}
                   <span>{chatSession?.job_title || 'New Chat'}</span>
                 </h2>
@@ -1266,9 +1270,42 @@ export default function ChatPage() {
                 <p className="text-claude-text-secondary mb-8">
                   Paste a job listing, ask a question about your resume, or choose a quick action
                 </p>
+
+                {/* Check for Uploaded Resume */}
+                {resumes.length === 0 && (
+                  <div className="flex-1 bg-claude-accent-orange-light border border-claude-accent-orange shadow-lg rounded-xl p-4 mb-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="p-2 w-12 h-12 bg-claude-accent-orange shadow-md rounded-lg">
+                        <img
+                          src="/warning.png"
+                          alt="Warning"
+                          className={`w-full h-full flex-shrink-0`}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-claude-accent-orange mb-1 text-left">
+                          Heads Up!
+                        </h3>
+                        <p className="text-sm text-claude-text-secondary text-left">
+                          I've noticed you don't have a resume uploaded. My analysis is most effective when I can review your experience. Please upload a resume to get the best results.
+                        </p>
+                      </div>
+                      
+                    </div>
+                    <div className="mt-4">
+                        <Link
+                          href="/dashboard/resume"
+                          className="inline-flex h-10 shadow-lg items-center space-x-2 px-4 py-2 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors"
+                        >
+                          <FileText className="w-4 h-4" />
+                          <span>Upload Resume</span>
+                        </Link>
+                      </div>
+                  </div>
+                )}
                 
                 {/* Show quick actions when user starts typing more than 100 chars */}
-                {inputMessage.length > 100 && (
+                {resumes.length !== 0 && inputMessage.length > 100 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 animate-fadeIn">
                     {QUICK_ACTIONS.map((action) => {
                       const Icon = action.icon;
@@ -1387,20 +1424,6 @@ export default function ChatPage() {
                     </div>
                 </div>
               )}
-
-              {/* {(analyzing || detectingJob) && (
-                <div className="flex justify-start">
-                  <div className="bg-white border border-claude-border rounded-2xl px-4 py-3">
-                    <div className="flex items-center space-x-2">
-                      <RefreshCw className="w-4 h-4 text-claude-accent-orange animate-spin" />
-                      <span className="text-claude-text-secondary">
-                        {detectingJob ? 'Detecting job details...' : `Running ${currentAnalysisType?.replace('_', ' ')} analysis...`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )} */}
-
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -1535,7 +1558,7 @@ export default function ChatPage() {
             {/* Send Button */}
             <button
               onClick={sendMessage}
-              disabled={!inputMessage.trim() || sending || analyzing}
+              disabled={!inputMessage.trim() || sending || analyzing || (resumes.length === 0)}
               className="w-40 self-end h-20 flex items-center justify-center space-x-2 px-4 bg-claude-accent-orange text-white rounded-lg hover:bg-claude-accent-orange-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="font-medium leading-none">Send</span>
