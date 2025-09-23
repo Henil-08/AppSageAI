@@ -2,6 +2,163 @@
 
 Comprehensive setup instructions for deploying AppSageAI on Google Cloud Platform.
 
+## Architecture
+
+### System Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        U[("👤 User")]
+        B["🌐 Browser<br/>(Next.js 14 App)"]
+    end
+
+    subgraph "Frontend Services"
+        AUTH["🔐 Firebase Auth<br/>(Google OAuth)"]
+        NC["📱 Next.js Client<br/>React Components"]
+        SSE["📡 SSE Client<br/>Real-time Streaming"]
+    end
+
+    subgraph "API Gateway"
+        CORS["🛡️ CORS Middleware"]
+        RL["⏱️ Rate Limiter<br/>(60 req/min)"]
+        JWT["🎫 JWT Verifier<br/>Firebase Tokens"]
+    end
+
+    subgraph "Backend Services"
+        API["⚡ FastAPI<br/>REST API"]
+        ENC["🔒 Encryption Service<br/>AES-256"]
+        RAG["🧠 RAG Pipeline<br/>FAISS + Embeddings"]
+        ANALYZER["📊 Resume Analyzer<br/>AI Processing"]
+    end
+
+    subgraph "AI Models"
+        GEMINI["✨ Google Gemini 2.5<br/>Analysis Engine"]
+        LLAMA["🦙 Meta Llama 3.3<br/>70B via Groq"]
+        HF["🤗 HuggingFace<br/>Embeddings"]
+    end
+
+    subgraph "Data Layer"
+        FS["🗄️ Firestore<br/>NoSQL Database"]
+        VEC["📐 FAISS<br/>Vector Store"]
+        
+        subgraph "Collections"
+            USERS["👥 Users"]
+            RESUMES["📄 Resumes<br/>(Encrypted)"]
+            CHATS["💬 Chats<br/>(Encrypted)"]
+            PROMPTS["📝 Prompts<br/>(Encrypted)"]
+        end
+    end
+
+    subgraph "Infrastructure"
+        GCR["☁️ Google Cloud Run<br/>Serverless Containers"]
+        FB["🔥 Firebase Platform"]
+        AR["📦 Artifact Registry<br/>Docker Images"]
+    end
+
+    %% User Flow
+    U -->|Visits| B
+    B -->|Authenticates| AUTH
+    AUTH -->|OAuth 2.0| FB
+    B -->|Renders| NC
+    NC -->|API Calls| CORS
+    NC -->|Subscribes| SSE
+
+    %% API Flow
+    CORS --> RL
+    RL --> JWT
+    JWT -->|Verified| API
+    API -->|Encrypts| ENC
+    API -->|Analyzes| ANALYZER
+    API -->|Streams| SSE
+
+    %% AI Processing
+    ANALYZER --> RAG
+    RAG --> HF
+    ANALYZER --> GEMINI
+    ANALYZER --> LLAMA
+    
+    %% Data Flow
+    ENC <-->|Read/Write| FS
+    RAG <-->|Vectors| VEC
+    FS --> USERS
+    USERS --> RESUMES
+    USERS --> CHATS
+    USERS --> PROMPTS
+    
+    %% Infrastructure
+    API -->|Deployed| GCR
+    NC -->|Deployed| GCR
+    GCR -->|Images| AR
+    FS -->|Managed by| FB
+
+    %% Styling
+    classDef client fill:#FFF4ED,stroke:#EA5A0C,stroke-width:2px
+    classDef frontend fill:#E8F4FF,stroke:#0066CC,stroke-width:2px
+    classDef backend fill:#F0FFF0,stroke:#00AA00,stroke-width:2px
+    classDef ai fill:#FFE6FF,stroke:#AA00AA,stroke-width:2px
+    classDef data fill:#FFF9E6,stroke:#FF9900,stroke-width:2px
+    classDef infra fill:#F5F5F5,stroke:#666666,stroke-width:2px
+    
+    class U,B client
+    class AUTH,NC,SSE frontend
+    class CORS,RL,JWT,API,ENC,RAG,ANALYZER backend
+    class GEMINI,LLAMA,HF ai
+    class FS,VEC,USERS,RESUMES,CHATS,PROMPTS data
+    class GCR,FB,AR infra
+```
+
+### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant NextJS as Next.js App
+    participant Firebase as Firebase Auth
+    participant API as FastAPI Backend
+    participant Encrypt as Encryption Service
+    participant AI as AI Models
+    participant DB as Firestore
+
+    %% Authentication Flow
+    User->>NextJS: Access App
+    NextJS->>Firebase: Google OAuth
+    Firebase-->>NextJS: Auth Token
+    NextJS->>API: Verify Token
+    API-->>NextJS: User Profile
+
+    %% Resume Upload Flow
+    User->>NextJS: Upload Resume
+    NextJS->>API: POST /resume/upload
+    API->>Encrypt: Encrypt PDF (AES-256)
+    Encrypt-->>API: Encrypted Data
+    API->>DB: Store Encrypted Resume
+    DB-->>API: Resume ID
+    API-->>NextJS: Upload Success
+    NextJS-->>User: Resume Ready
+
+    %% Analysis Flow with Streaming
+    User->>NextJS: Request Analysis
+    NextJS->>API: POST /analysis/stream
+    API->>DB: Fetch Encrypted Resume
+    DB-->>API: Encrypted Data
+    API->>Encrypt: Decrypt Resume
+    Encrypt-->>API: Resume Content
+    
+    API->>AI: Process with RAG
+    loop Streaming Response
+        AI-->>API: Token
+        API-->>NextJS: SSE: Token
+        NextJS-->>User: Display Token
+    end
+    
+    API->>Encrypt: Encrypt Result
+    Encrypt-->>API: Encrypted Result
+    API->>DB: Store Analysis
+    API-->>NextJS: SSE: Complete
+    NextJS-->>User: Analysis Done
+```
+
 ## Prerequisites
 
 ### Required Accounts
