@@ -4,8 +4,6 @@ Transform your job search with intelligent resume analysis while keeping your da
 
 Checkout the Application here: [appsageai.com](https://appsageai-frontend-964026407675.us-central1.run.app)
 
-![Login](./media/login.png)
-
 ## What is AppSageAI?
 
 AppSageAI is a privacy-focused job application companion that uses advanced AI to analyze your resume against job descriptions. Unlike other tools, we prioritize your data privacy with enterprise-grade encryption, ensuring your personal information remains secure.
