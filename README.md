@@ -4,6 +4,8 @@ Transform your job search with intelligent resume analysis while keeping your da
 
 Checkout the Application here: [appsageai.com](https://appsageai-frontend-964026407675.us-central1.run.app)
 
+Watch the demo video here: [![Login Page](./media/login.png)](https://drive.google.com/file/d/1yjaVjYMUkm0EyKPY1trS6bXLOjmPu7qa/view?usp=sharing)
+
 ## What is AppSageAI?
 
 AppSageAI is a privacy-focused job application companion that uses advanced AI to analyze your resume against job descriptions. Unlike other tools, we prioritize your data privacy with enterprise-grade encryption, ensuring your personal information remains secure.
@@ -100,7 +102,7 @@ This guide includes steps for creating a GCP account, configuring environment va
 ## Contributing
 We welcome contributions! Please see our [Contributing Guide](./docs/CONTRIBUTING.md) for details.
 
-###License
+## License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🙏 Acknowledgments

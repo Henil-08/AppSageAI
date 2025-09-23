@@ -9,6 +9,15 @@ export default function HomePage() {
   const { user, loading, signIn } = useAuth();
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const handleWatchDemoClick = () => {
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
 
   useEffect(() => {
     if (user && !loading) {
@@ -36,6 +45,24 @@ export default function HomePage() {
     <div className="h-screen overflow-hidden bg-gradient-to-br from-gray-50 to-orange-50">
       <main className="h-full flex flex-col justify-center items-center px-16 py-[clamp(2rem,5vh,6rem)] space-y-4">
         <div className="max-w-7xl mx-auto">
+          {/* Video Modal */}
+          {showModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+              <div className="bg-white p-4 rounded-lg">
+                <button onClick={handleCloseModal} className="float-right text-gray-500 hover:text-gray-800">
+                  &times;
+                </button>
+                <iframe
+                  width="1150"
+                  height="720"
+                  src="https://player.vimeo.com/video/1121046190?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479"
+                  title="Demo Video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          )}
 
           {/* Hero Section */}
           <div className="flex flex-col text-center items-center justify-center">
@@ -128,7 +155,10 @@ export default function HomePage() {
               </button>
               
               {/* Watch Demo Button */}
-              <button className="px-8 py-3 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 hover:scale-105 shadow-lg transition-all duration-200 transform hover:scale-105">
+              <button 
+                onClick={handleWatchDemoClick}
+                className="px-8 py-3 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 hover:scale-105 shadow-lg transition-all duration-200 transform hover:scale-105"
+              >
                 Watch Demo
               </button>
             </div>
