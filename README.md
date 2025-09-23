@@ -14,12 +14,12 @@ AppSageAI is a privacy-focused job application companion that uses advanced AI t
 
 ### Your Data, Your Control
 - **AES-256 Encryption**: All resumes, chats, prompts, and personal data encrypted at rest
-- **Anonymized Analytics**: No personally identifiable information in logs
+- **Anonymized Analytics**: No personally identifiable information (PII) in logs
 - **Secure Infrastructure**: Hosted on Google Cloud with enterprise security
 - **GDPR Compliant**: Full data portability and right to deletion
 
 ### Security Features
-- **End-to-End Encryption**: All sensitive data encrypted before storage
+- **Encryption at rest**: All sensitive data encrypted before storage
 - **Zero-Knowledge**: Even developers cannot access your encrypted data
 - **Secure Authentication**: Firebase Auth with OAuth 2.0
 - **Rate Limiting**: Protection against abuse
